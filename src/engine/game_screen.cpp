@@ -38,6 +38,7 @@ void TA_GameScreen::init() {
             seaFox.setFlyMode();
         }
     } else {
+        character.setCharacter(static_cast<TA_CharacterID>(TA::save::getSaveParameter("character")));
         character.load(links);
     }
 

@@ -19,10 +19,14 @@ void TA_Character::load(TA_Links newLinks) {
     waterSound.load("sound/water.ogg", TA_SOUND_CHANNEL_SFX1);
     nightVisionSound.load("sound/land.ogg", TA_SOUND_CHANNEL_SFX3);
 
-    loadFromToml("tails/tails.toml");
+    // Sonic usa o mesmo grid de frames do tails.png (48x48, mesmas animações),
+    // então sonic.toml pode ser uma cópia de tails.toml apontando pra sonic.png.
+    std::string spriteToml = (characterId == TA_CHARACTER_SONIC) ? "sonic/sonic.toml" : "tails/tails.toml";
+
+    loadFromToml(spriteToml);
     setCamera(links.camera);
 
-    remoteRobotControlSprite.loadFromToml("tails/tails.toml");
+    remoteRobotControlSprite.loadFromToml(spriteToml);
     remoteRobotControlSprite.setAnimation("control_remote_robot");
     remoteRobotControlSprite.setCamera(links.camera);
     rings = TA::save::getSaveParameter("rings");

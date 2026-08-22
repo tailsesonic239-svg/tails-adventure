@@ -6,6 +6,8 @@
 #include "sound.h"
 #include "sprite.h"
 
+enum TA_CharacterID { TA_CHARACTER_TAILS = 0, TA_CHARACTER_SONIC = 1 };
+
 class TA_Character : public TA_Sprite {
 private:
     enum CharacterTool {
@@ -109,6 +111,8 @@ private:
     bool debugMode = false;
     bool noclip = false;
 
+    TA_CharacterID characterId = TA_CHARACTER_TAILS;
+
     void physicsStep();
     void updateGround();
     void updateAir();
@@ -145,6 +149,10 @@ private:
     void dropRings();
 
 public:
+    // Precisa ser chamado ANTES de load(), senão o sprite errado já foi carregado.
+    void setCharacter(TA_CharacterID id) { characterId = id; }
+    TA_CharacterID getCharacter() { return characterId; }
+
     void load(TA_Links newLinks);
     void handleInput();
     void update();

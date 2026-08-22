@@ -1,6 +1,7 @@
 #include "data_select_section.h"
 #include <bit>
 #include <numeric>
+#include "character.h"
 #include "resource_manager.h"
 #include "save.h"
 #include "tools.h"
@@ -12,6 +13,8 @@ void TA_DataSelectSection::load() {
     previewSprite.load("data_select/preview.png", 46, 46);
     previewSeafoxSprite.load("data_select/preview_seafox.png", 46, 46);
     optionsSprite.load("data_select/options.png");
+    characterSelectTailsSprite.loadFromToml("tails/tails.toml");
+    characterSelectSonicSprite.loadFromToml("sonic/sonic.toml");
 
     font.loadFont("fonts/pause_menu.toml");
     splashFont.loadFont("fonts/splash.toml");
@@ -38,6 +41,11 @@ TA_MainMenuState TA_DataSelectSection::update() {
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
+    if(choosingCharacter) {
+        updateCharacterSelect();
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
     if(controller->isTouchscreen()) {
         updateScroll();
         if(updateTouchscreenSelection()) {
@@ -53,20 +61,48 @@ TA_MainMenuState TA_DataSelectSection::update() {
     return TA_MAIN_MENU_DATA_SELECT;
 }
 
+void TA_DataSelectSection::updateCharacterSelect() {
+    if(controller->isJustChangedDirection() &&
+        (controller->getDirection() == TA_DIRECTION_LEFT || controller->getDirection() == TA_DIRECTION_RIGHT)) {
+        pendingCharacter = (pendingCharacter == TA_CHARACTER_TAILS) ? TA_CHARACTER_SONIC : TA_CHARACTER_TAILS;
+        switchSound.play();
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_A)) {
+        confirmSaveAndEnter();
+    } else if(controller->isJustPressed(TA_BUTTON_B)) {
+        // Cancela e volta pra tela de seleção de save, sem entrar no jogo.
+        choosingCharacter = false;
+        pendingSave = -1;
+    }
+}
+
 TA_MainMenuState TA_DataSelectSection::processSelection() {
     if(selection == 0) {
         selectSound.play();
         return TA_MAIN_MENU_OPTIONS;
     }
 
-    if(!TA::save::saveExists(selection - 1)) {
-        createdSave = selection - 1;
+    selectSound.play();
+    choosingCharacter = true;
+    pendingSave = selection - 1;
+    pendingCharacter = static_cast<TA_CharacterID>(
+        TA::save::getSaveParameter("character", "save_" + std::to_string(pendingSave)));
+    return TA_MAIN_MENU_DATA_SELECT;
+}
+
+void TA_DataSelectSection::confirmSaveAndEnter() {
+    if(!TA::save::saveExists(pendingSave)) {
+        createdSave = pendingSave;
     }
-    TA::save::repairSave("save_" + std::to_string(selection - 1));
-    TA::save::setCurrentSave("save_" + std::to_string(selection - 1));
+    std::string saveName = "save_" + std::to_string(pendingSave);
+    TA::save::repairSave(saveName);
+    TA::save::setCurrentSave(saveName);
+    TA::save::setSaveParameter("character", pendingCharacter, saveName);
+
+    choosingCharacter = false;
     loadSaveSound.play();
     locked = true;
-    return TA_MAIN_MENU_DATA_SELECT;
 }
 
 void TA_DataSelectSection::updateScroll() {
@@ -132,6 +168,39 @@ void TA_DataSelectSection::draw() {
     drawModCount();
     drawSplash();
     drawSelector();
+    drawCharacterSelect();
+}
+
+void TA_DataSelectSection::drawCharacterSelect() {
+    if(!choosingCharacter) {
+        return;
+    }
+
+    font.setAlpha(255);
+    splashFont.setAlpha(255);
+    characterSelectTailsSprite.setAlpha(255);
+    characterSelectSonicSprite.setAlpha(255);
+
+    std::string title = "CHOOSE CHARACTER";
+    splashFont.drawTextCentered((float)TA::screenHeight / 2 - 48, title, TA_Point(-1, 0));
+
+    characterSelectTailsSprite.setAnimation("idle");
+    characterSelectSonicSprite.setAnimation("idle");
+
+    float centerX = (float)TA::screenWidth / 2;
+    float spriteY = (float)TA::screenHeight / 2 - characterSelectTailsSprite.getHeight() / 2;
+    TA_Point tailsPos{centerX - 80 - characterSelectTailsSprite.getWidth() / 2, spriteY};
+    TA_Point sonicPos{centerX + 80 - characterSelectSonicSprite.getWidth() / 2, spriteY};
+
+    characterSelectTailsSprite.setPosition(tailsPos);
+    characterSelectSonicSprite.setPosition(sonicPos);
+    characterSelectTailsSprite.draw();
+    characterSelectSonicSprite.draw();
+
+    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> TAILS <" : "  TAILS  ";
+    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> SONIC <" : "  SONIC  ";
+    font.drawText(TA_Point(centerX - 80 - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 8), tailsLabel);
+    font.drawText(TA_Point(centerX + 80 - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 8), sonicLabel);
 }
 
 void TA_DataSelectSection::drawCustomEntries() {

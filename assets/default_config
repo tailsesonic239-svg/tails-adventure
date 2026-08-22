@@ -46,4 +46,4 @@ default_save/map_selection 0
 default_save/time 0
 default_save/last_unlocked 1
 default_save/underwater_barrier_passed 0
-
+default_save/character 0
