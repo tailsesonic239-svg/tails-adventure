@@ -86,8 +86,12 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
     selectSound.play();
     choosingCharacter = true;
     pendingSave = selection - 1;
-    pendingCharacter = static_cast<TA_CharacterID>(
-        TA::save::getSaveParameter("character", "save_" + std::to_string(pendingSave)));
+    if(TA::save::saveExists(pendingSave)) {
+        pendingCharacter = static_cast<TA_CharacterID>(
+            TA::save::getSaveParameter("character", "save_" + std::to_string(pendingSave)));
+    } else {
+        pendingCharacter = TA_CHARACTER_TAILS;
+    }
     return TA_MAIN_MENU_DATA_SELECT;
 }
 
