@@ -7,6 +7,7 @@ android {
     ndkVersion "29.0.13846066"
     compileSdkVersion 36
     defaultConfig {
+        applicationId "com.tailsesonic239.tailsadventuresonic"
         minSdkVersion 24
         targetSdkVersion 36
         versionCode 15
