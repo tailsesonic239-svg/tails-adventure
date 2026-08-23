@@ -50,6 +50,7 @@ private:
     float splashTimer = 0;
 
     std::array<TA_OnscreenButton, 9> buttons;
+    TA_OnscreenButton characterSelectTailsButton, characterSelectSonicButton, characterSelectBackButton;
     float position = 0, scrollVelocity = 0;
     int selection = 1, createdSave = -1, alpha = 255;
     bool locked = false;

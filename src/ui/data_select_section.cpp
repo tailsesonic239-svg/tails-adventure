@@ -29,6 +29,13 @@ void TA_DataSelectSection::load() {
         buttons[pos].setRectangle(topLeft, bottomRight);
     }
 
+    // Metade esquerda da tela escolhe Tails, metade direita escolhe Sonic,
+    // uma faixa fina no topo cancela e volta pra seleção de save.
+    characterSelectBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
+    characterSelectTailsButton.setRectangle(TA_Point(0, 24), TA_Point((float)TA::screenWidth / 2, (float)TA::screenHeight));
+    characterSelectSonicButton.setRectangle(
+        TA_Point((float)TA::screenWidth / 2, 24), TA_Point((float)TA::screenWidth, (float)TA::screenHeight));
+
     splashSequence = generateSplashSequence();
 }
 
@@ -62,6 +69,24 @@ TA_MainMenuState TA_DataSelectSection::update() {
 }
 
 void TA_DataSelectSection::updateCharacterSelect() {
+    if(controller->isTouchscreen()) {
+        characterSelectTailsButton.update();
+        characterSelectSonicButton.update();
+        characterSelectBackButton.update();
+
+        if(characterSelectBackButton.isReleased()) {
+            choosingCharacter = false;
+            pendingSave = -1;
+        } else if(characterSelectTailsButton.isReleased()) {
+            pendingCharacter = TA_CHARACTER_TAILS;
+            confirmSaveAndEnter();
+        } else if(characterSelectSonicButton.isReleased()) {
+            pendingCharacter = TA_CHARACTER_SONIC;
+            confirmSaveAndEnter();
+        }
+        return;
+    }
+
     if(controller->isJustChangedDirection() &&
         (controller->getDirection() == TA_DIRECTION_LEFT || controller->getDirection() == TA_DIRECTION_RIGHT)) {
         pendingCharacter = (pendingCharacter == TA_CHARACTER_TAILS) ? TA_CHARACTER_SONIC : TA_CHARACTER_TAILS;
@@ -187,6 +212,7 @@ void TA_DataSelectSection::drawCharacterSelect() {
 
     std::string title = "CHOOSE CHARACTER";
     splashFont.drawTextCentered((float)TA::screenHeight / 2 - 48, title, TA_Point(-1, 0));
+    font.drawText(TA_Point(8, 8), "< BACK");
 
     characterSelectTailsSprite.setAnimation("idle");
     characterSelectSonicSprite.setAnimation("idle");
