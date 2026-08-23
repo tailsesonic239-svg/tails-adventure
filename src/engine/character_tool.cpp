@@ -4,6 +4,7 @@
 #include "hud.h"
 #include "large_bomb.h"
 #include "objects/bomb.h"
+#include "save.h"
 #include "tilemap.h"
 #include "tools.h"
 
@@ -20,6 +21,15 @@ void TA_Character::updateTool() {
 
     if(hurt) {
         return;
+    }
+
+    if(characterId == TA_CHARACTER_SONIC && !TA::save::getParameter("sonic_bomb")) {
+        int currentItem = links.hud->getCurrentItem();
+        bool isBombItem = currentItem == TOOL_BOMB || currentItem == TOOL_LARGE_BOMB ||
+            currentItem == TOOL_REMOTE_BOMB || currentItem == TOOL_NAPALM_BOMB || currentItem == TOOL_TRIPLE_BOMB;
+        if(isBombItem) {
+            return;
+        }
     }
 
     if(remoteRobot) {

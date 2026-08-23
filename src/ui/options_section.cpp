@@ -324,13 +324,36 @@ private:
     std::string off = getOptionString("off");
 };
 
+class TA_SonicBombOption : public TA_Option {
+public:
+    std::string getName() override { return name; }
+
+    std::string getValue() override {
+        int value = TA::save::getParameter("sonic_bomb");
+        return (value ? on : off);
+    }
+
+    TA_MoveSoundId move(int delta) override {
+        int value = TA::save::getParameter("sonic_bomb");
+        value = 1 - value;
+        TA::save::setParameter("sonic_bomb", value);
+        return TA_MOVE_SOUND_SWITCH;
+    }
+
+private:
+    std::string name = getOptionString("sonic_bomb");
+    std::string on = getOptionString("on");
+    std::string off = getOptionString("off");
+};
+
 void TA_OptionsSection::load() {
     font.loadFont("fonts/pause_menu.toml");
 
-    groups = std::vector<std::string>(3);
+    groups = std::vector<std::string>(4);
     groups[0] = getOptionString("video");
     groups[1] = getOptionString("controls");
     groups[2] = getOptionString("sound");
+    groups[3] = getOptionString("game");
 
     options.resize(groups.size());
     options[0].push_back(std::make_unique<TA_ResolutionOption>());
@@ -351,6 +374,8 @@ void TA_OptionsSection::load() {
     options[2].push_back(std::make_unique<TA_VolumeOption>(getOptionString("main"), "main_volume"));
     options[2].push_back(std::make_unique<TA_VolumeOption>(getOptionString("music"), "music_volume"));
     options[2].push_back(std::make_unique<TA_VolumeOption>(getOptionString("sfx"), "sfx_volume"));
+
+    options[3].push_back(std::make_unique<TA_SonicBombOption>());
 
     switchSound.load("sound/switch.ogg", TA_SOUND_CHANNEL_SFX1);
     selectSound.load("sound/select_item.ogg", TA_SOUND_CHANNEL_SFX2);

@@ -33,3 +33,5 @@ main = "main"
 music = "music"
 sfx = "sfx"
 
+game = "game"
+sonic_bomb = "sonic bomb"
