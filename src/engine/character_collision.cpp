@@ -202,7 +202,7 @@ void TA_Character::setHurt() {
         return;
     }
     hurt = true;
-    ground = helitail = jump = false;
+    ground = helitail = jump = sonicDashing = false;
     damageSound.play();
     TA::gamepad::rumble(0.75, 0.75, 20);
 }

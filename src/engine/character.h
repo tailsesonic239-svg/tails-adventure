@@ -52,6 +52,7 @@ private:
     static constexpr float releaseJumpSpeed = -1.5;
     static constexpr float helitailAcc = 0.1;
     static constexpr float helitailTop = 1;
+    static constexpr float sonicDashSpeed = 2.5;
     static constexpr float hurtXsp = 1;
     static constexpr float hurtYsp = -2.5;
     static constexpr float invincibleTime = 120;
@@ -86,6 +87,7 @@ private:
 
     bool ground = false, helitail = false, wall = false, ceiling = false, flip = false;
     bool jump = false, jumpReleased = false, spring = false;
+    bool sonicDashing = false;
     bool hurt = false;
     bool lookUp = false, crouch = false;
     bool useSolidUpTiles = false, useSolidDownTiles = false, useMovingPlatforms = true;
@@ -117,6 +119,7 @@ private:
     void updateGround();
     void updateAir();
     void updateHelitail();
+    void updateSonicDash();
     void initHelitail();
     void updateWaterFlow();
     int getSolidFlags();

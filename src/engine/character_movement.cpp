@@ -4,7 +4,9 @@
 
 void TA_Character::physicsStep() {
     if(!hurt) {
-        if(water && (!TA::equal(windVelocity.x, 0) || !TA::equal(windVelocity.y, 0))) {
+        if(sonicDashing) {
+            updateSonicDash();
+        } else if(water && (!TA::equal(windVelocity.x, 0) || !TA::equal(windVelocity.y, 0))) {
             updateWaterFlow();
         } else if(helitail) {
             updateHelitail();
@@ -45,8 +47,14 @@ void TA_Character::updateGround() {
         velocity.x = 0;
     }
     if(links.controller->isJustPressed(TA_BUTTON_A)) {
-        if(lookUp && (!water || remoteRobot)) {
+        if(crouch && characterId == TA_CHARACTER_SONIC && !water) {
+            sonicDashing = true;
+            velocity.x = (flip ? -sonicDashSpeed : sonicDashSpeed);
+            attackHitbox.setRectangle(TA_Point(6, 20), TA_Point(34, 39));
+            hammerSound.play();
+        } else if(lookUp && (!water || remoteRobot)) {
             initHelitail();
+            ground = false;
         } else {
             jumpSound.play();
             jumpSpeed = (remoteRobot ? remoteRobotJumpSpeed : jmp) * (water ? 0.7F : 1);
@@ -54,8 +62,42 @@ void TA_Character::updateGround() {
             jumpReleased = false;
             jumpTime = 0;
             updateAir();
+            ground = false;
         }
+    }
+}
+
+void TA_Character::updateSonicDash() {
+    if(!ground) {
+        sonicDashing = false;
+        updateAir();
+        return;
+    }
+
+    const float dashFriction = 0.05F;
+    const float dashMinSpeed = topX * 1.2F;
+
+    if(velocity.x > 0) {
+        velocity.x = std::max(0.0F, velocity.x - dashFriction * TA::elapsedTime);
+    } else {
+        velocity.x = std::min(0.0F, velocity.x + dashFriction * TA::elapsedTime);
+    }
+
+    attackHitbox.setPosition(position);
+
+    if(links.controller->isJustPressed(TA_BUTTON_A)) {
+        sonicDashing = false;
+        jumpSound.play();
+        jumpSpeed = jmp;
+        jump = true;
+        jumpReleased = false;
+        jumpTime = 0;
         ground = false;
+        return;
+    }
+
+    if(std::abs(velocity.x) < dashMinSpeed) {
+        sonicDashing = false;
     }
 }
 
