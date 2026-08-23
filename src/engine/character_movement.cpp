@@ -74,8 +74,8 @@ void TA_Character::updateSonicDash() {
         return;
     }
 
-    const float dashFriction = 0.05F;
-    const float dashMinSpeed = topX * 1.2F;
+    const float dashFriction = 0.03F;
+    const float dashMinSpeed = topX * 1.5F;
 
     if(velocity.x > 0) {
         velocity.x = std::max(0.0F, velocity.x - dashFriction * TA::elapsedTime);

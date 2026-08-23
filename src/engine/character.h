@@ -52,7 +52,7 @@ private:
     static constexpr float releaseJumpSpeed = -1.5;
     static constexpr float helitailAcc = 0.1;
     static constexpr float helitailTop = 1;
-    static constexpr float sonicDashSpeed = 2.5;
+    static constexpr float sonicDashSpeed = 3.5;
     static constexpr float hurtXsp = 1;
     static constexpr float hurtYsp = -2.5;
     static constexpr float invincibleTime = 120;
@@ -183,7 +183,7 @@ public:
     bool isFlying() { return helitail; }
     bool isOnCeiling() { return ceiling; }
     bool isTeleported();
-    bool isAttacking() { return state == STATE_HAMMER || state == STATE_HELMET; }
+    bool isAttacking() { return state == STATE_HAMMER || state == STATE_HELMET || sonicDashing; }
     bool isUsingHelmet() { return state == STATE_HELMET; }
     bool isFastCamera() { return spring || strongWind || usingSpeedBoots || conveyorBelt || noclip; }
     bool isInWater() { return water; }

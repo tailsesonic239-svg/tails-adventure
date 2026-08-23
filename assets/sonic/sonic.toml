@@ -135,3 +135,6 @@ frames = [137, 136]
 delay = 6
 repeat = 1
 
+[animations.spindash]
+frames = [86, 87, 88, 89, 90, 91, 92, 93]
+delay = 3
