@@ -41,7 +41,7 @@ private:
     std::string generateSplash();
 
     TA_Sprite entrySprite, selectorRedSprite, selectorWhiteSprite, previewSprite, previewSeafoxSprite, optionsSprite;
-    TA_Sprite characterSelectTailsSprite, characterSelectSonicSprite;
+    TA_Sprite characterSelectTailsSprite, characterSelectSonicSprite, characterSelectFrameSprite;
     TA_Sound switchSound, selectSound, loadSaveSound;
     TA_Font font, splashFont;
     float timer = 0, selectorTimer = 0;

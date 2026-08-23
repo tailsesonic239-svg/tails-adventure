@@ -15,6 +15,7 @@ void TA_DataSelectSection::load() {
     optionsSprite.load("data_select/options.png");
     characterSelectTailsSprite.loadFromToml("tails/tails.toml");
     characterSelectSonicSprite.loadFromToml("sonic/sonic.toml");
+    characterSelectFrameSprite.load("hud/pause_menu_frame.png");
 
     font.loadFont("fonts/pause_menu.toml");
     splashFont.loadFont("fonts/splash.toml");
@@ -209,18 +210,28 @@ void TA_DataSelectSection::drawCharacterSelect() {
     splashFont.setAlpha(255);
     characterSelectTailsSprite.setAlpha(255);
     characterSelectSonicSprite.setAlpha(255);
+    characterSelectFrameSprite.setAlpha(255);
+
+    characterSelectFrameSprite.setPosition(
+        (float)TA::screenWidth / 2 - characterSelectFrameSprite.getWidth() / 2,
+        (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2);
+    characterSelectFrameSprite.draw();
+
+    float centerX = (float)TA::screenWidth / 2;
+    float centerY = (float)TA::screenHeight / 2;
+    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
 
     std::string title = "CHOOSE CHARACTER";
-    splashFont.drawTextCentered((float)TA::screenHeight / 2 - 48, title, TA_Point(-1, 0));
+    splashFont.drawTextCentered(frameTop + 6, title, TA_Point(-1, 0));
     font.drawText(TA_Point(8, 8), "< BACK");
 
     characterSelectTailsSprite.setAnimation("idle");
     characterSelectSonicSprite.setAnimation("idle");
 
-    float centerX = (float)TA::screenWidth / 2;
-    float spriteY = (float)TA::screenHeight / 2 - characterSelectTailsSprite.getHeight() / 2;
-    TA_Point tailsPos{centerX - 80 - characterSelectTailsSprite.getWidth() / 2, spriteY};
-    TA_Point sonicPos{centerX + 80 - characterSelectSonicSprite.getWidth() / 2, spriteY};
+    const float spriteOffset = 32;
+    float spriteY = frameTop + 18;
+    TA_Point tailsPos{centerX - spriteOffset - characterSelectTailsSprite.getWidth() / 2, spriteY};
+    TA_Point sonicPos{centerX + spriteOffset - characterSelectSonicSprite.getWidth() / 2, spriteY};
 
     characterSelectTailsSprite.setPosition(tailsPos);
     characterSelectSonicSprite.setPosition(sonicPos);
@@ -229,8 +240,8 @@ void TA_DataSelectSection::drawCharacterSelect() {
 
     std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> TAILS <" : "  TAILS  ";
     std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> SONIC <" : "  SONIC  ";
-    font.drawText(TA_Point(centerX - 80 - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 8), tailsLabel);
-    font.drawText(TA_Point(centerX + 80 - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 8), sonicLabel);
+    font.drawText(TA_Point(centerX - spriteOffset - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 4), tailsLabel);
+    font.drawText(TA_Point(centerX + spriteOffset - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 4), sonicLabel);
 }
 
 void TA_DataSelectSection::drawCustomEntries() {
