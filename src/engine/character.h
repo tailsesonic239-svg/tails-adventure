@@ -52,7 +52,9 @@ private:
     static constexpr float releaseJumpSpeed = -1.5;
     static constexpr float helitailAcc = 0.1;
     static constexpr float helitailTop = 1;
-    static constexpr float sonicDashSpeed = 3.5;
+    static constexpr float sonicDashBaseSpeed = 2.0;
+    static constexpr float sonicDashChargeStep = 0.3;
+    static constexpr int sonicDashMaxCharge = 4;
     static constexpr float hurtXsp = 1;
     static constexpr float hurtYsp = -2.5;
     static constexpr float invincibleTime = 120;
@@ -88,6 +90,8 @@ private:
     bool ground = false, helitail = false, wall = false, ceiling = false, flip = false;
     bool jump = false, jumpReleased = false, spring = false;
     bool sonicDashing = false;
+    bool sonicCharging = false;
+    int sonicChargeCount = 0;
     bool hurt = false;
     bool lookUp = false, crouch = false;
     bool useSolidUpTiles = false, useSolidDownTiles = false, useMovingPlatforms = true;
@@ -120,6 +124,7 @@ private:
     void updateAir();
     void updateHelitail();
     void updateSonicDash();
+    void updateSonicCharge();
     void initHelitail();
     void updateWaterFlow();
     int getSolidFlags();
@@ -183,7 +188,7 @@ public:
     bool isFlying() { return helitail; }
     bool isOnCeiling() { return ceiling; }
     bool isTeleported();
-    bool isAttacking() { return state == STATE_HAMMER || state == STATE_HELMET || sonicDashing; }
+    bool isAttacking() { return state == STATE_HAMMER || state == STATE_HELMET || sonicDashing || sonicCharging; }
     bool isUsingHelmet() { return state == STATE_HELMET; }
     bool isFastCamera() { return spring || strongWind || usingSpeedBoots || conveyorBelt || noclip; }
     bool isInWater() { return water; }
@@ -207,3 +212,4 @@ public:
 };
 
 #endif // TA_CHARACTER_H
+

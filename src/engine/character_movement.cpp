@@ -4,7 +4,9 @@
 
 void TA_Character::physicsStep() {
     if(!hurt) {
-        if(sonicDashing) {
+        if(sonicCharging) {
+            updateSonicCharge();
+        } else if(sonicDashing) {
             updateSonicDash();
         } else if(water && (!TA::equal(windVelocity.x, 0) || !TA::equal(windVelocity.y, 0))) {
             updateWaterFlow();
@@ -22,8 +24,6 @@ void TA_Character::physicsStep() {
         velocity.y += grv * (water ? 0.5F : 1) * TA::elapsedTime;
         velocity.y = std::min(velocity.y, maxJumpSpeed * (water ? 0.5F : 1));
     }
-
-    // TA::printLog("%f %f", position.x, position.y);
 }
 
 void TA_Character::initHelitail() {
@@ -48,8 +48,9 @@ void TA_Character::updateGround() {
     }
     if(links.controller->isJustPressed(TA_BUTTON_A)) {
         if(crouch && characterId == TA_CHARACTER_SONIC && !water) {
-            sonicDashing = true;
-            velocity.x = (flip ? -sonicDashSpeed : sonicDashSpeed);
+            sonicCharging = true;
+            sonicChargeCount = 0;
+            velocity.x = 0;
             attackHitbox.setRectangle(TA_Point(6, 20), TA_Point(34, 39));
             hammerSound.play();
         } else if(lookUp && (!water || remoteRobot)) {
@@ -67,15 +68,36 @@ void TA_Character::updateGround() {
     }
 }
 
-void TA_Character::updateSonicDash() {
+void TA_Character::updateSonicCharge() {
     if(!ground) {
-        sonicDashing = false;
+        sonicCharging = false;
         updateAir();
         return;
     }
 
+    jump = spring = false;
+    coyoteTime = 0;
+    crouch = (links.controller->getDirection() == TA_DIRECTION_DOWN);
+    velocity.x = 0; // fica travado enquanto carrega
+
+    attackHitbox.setPosition(position);
+
+    if(links.controller->isJustPressed(TA_BUTTON_A) && sonicChargeCount < sonicDashMaxCharge) {
+        sonicChargeCount++;
+        hammerSound.play();
+    }
+
+    if(!crouch) {
+        sonicCharging = false;
+        sonicDashing = true;
+        float speed = sonicDashBaseSpeed + sonicDashChargeStep * sonicChargeCount;
+        velocity.x = (flip ? -speed : speed);
+        jumpSound.play();
+    }
+}
+
+void TA_Character::updateSonicDash() {
     const float dashFriction = 0.03F;
-    const float dashMinSpeed = topX * 1.5F;
 
     if(velocity.x > 0) {
         velocity.x = std::max(0.0F, velocity.x - dashFriction * TA::elapsedTime);
@@ -83,20 +105,14 @@ void TA_Character::updateSonicDash() {
         velocity.x = std::min(0.0F, velocity.x + dashFriction * TA::elapsedTime);
     }
 
-    attackHitbox.setPosition(position);
-
-    if(links.controller->isJustPressed(TA_BUTTON_A)) {
-        sonicDashing = false;
-        jumpSound.play();
-        jumpSpeed = jmp;
-        jump = true;
-        jumpReleased = false;
-        jumpTime = 0;
-        ground = false;
-        return;
+    if(!ground) {
+        velocity.y += grv * TA::elapsedTime;
+        velocity.y = std::min(velocity.y, maxJumpSpeed);
     }
 
-    if(std::abs(velocity.x) < dashMinSpeed) {
+    attackHitbox.setPosition(position);
+
+    if(wall) {
         sonicDashing = false;
     }
 }

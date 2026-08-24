@@ -135,7 +135,7 @@ void TA_Character::updateCollisions() {
         ceiling = false;
     }
 
-    if(!remoteRobot && !hurt && invincibleTimeLeft <= 0) {
+    if(!remoteRobot && !hurt && invincibleTimeLeft <= 0 && !sonicDashing) {
         auto handleDamage = [&](TA_Rect& hitbox, int sign) {
             if(hurt) {
                 return;
@@ -202,7 +202,7 @@ void TA_Character::setHurt() {
         return;
     }
     hurt = true;
-    ground = helitail = jump = sonicDashing = false;
+    ground = helitail = jump = sonicDashing = sonicCharging = false;
     damageSound.play();
     TA::gamepad::rumble(0.75, 0.75, 20);
 }
@@ -348,3 +348,4 @@ void TA_Character::updateWaterCollision() {
     }
     water = newWater;
 }
+
