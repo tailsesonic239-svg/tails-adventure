@@ -194,7 +194,7 @@ void TA_Character::updateAnimation() {
     if(hurt) {
         setAnimation("hurt");
     } else if(ground) {
-        if(sonicDashing) {
+        if(sonicDashing || sonicCharging) {
             setAnimation("spindash");
         } else if(lookUp) {
             setAnimation("look_up");

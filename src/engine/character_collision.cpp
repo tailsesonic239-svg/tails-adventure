@@ -135,7 +135,7 @@ void TA_Character::updateCollisions() {
         ceiling = false;
     }
 
-    if(!remoteRobot && !hurt && invincibleTimeLeft <= 0 && !sonicDashing) {
+    if(!remoteRobot && !hurt && invincibleTimeLeft <= 0) {
         auto handleDamage = [&](TA_Rect& hitbox, int sign) {
             if(hurt) {
                 return;
@@ -348,4 +348,3 @@ void TA_Character::updateWaterCollision() {
     }
     water = newWater;
 }
-
