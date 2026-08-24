@@ -90,6 +90,7 @@ void TA_Character::updateSonicCharge() {
     if(!crouch) {
         sonicCharging = false;
         sonicDashing = true;
+        sonicDashTime = 0;
         float speed = sonicDashBaseSpeed + sonicDashChargeStep * sonicChargeCount;
         velocity.x = (flip ? -speed : speed);
         jumpSound.play();
@@ -97,6 +98,20 @@ void TA_Character::updateSonicCharge() {
 }
 
 void TA_Character::updateSonicDash() {
+    sonicDashTime += TA::elapsedTime;
+
+    if(sonicDashTime > sonicDashMaxTime) {
+        const float dashSlowdown = 0.05F;
+        if(velocity.x > 0) {
+            velocity.x = std::max(0.0F, velocity.x - dashSlowdown * TA::elapsedTime);
+        } else {
+            velocity.x = std::min(0.0F, velocity.x + dashSlowdown * TA::elapsedTime);
+        }
+        if(std::abs(velocity.x) < 0.05F) {
+            sonicDashing = false;
+        }
+    }
+
     if(!ground) {
         velocity.y += grv * TA::elapsedTime;
         velocity.y = std::min(velocity.y, maxJumpSpeed);

@@ -144,6 +144,9 @@ void TA_Character::updateCollisions() {
             if((flags & TA_COLLISION_DAMAGE) == 0) {
                 return;
             }
+            if(sonicDashing && (flags & TA_COLLISION_TARGET) != 0) {
+                return;
+            }
             setHurt();
             position.y -= 1;
             velocity.x = hurtXsp * sign;

@@ -55,6 +55,7 @@ private:
     static constexpr float sonicDashBaseSpeed = 2.0;
     static constexpr float sonicDashChargeStep = 0.3;
     static constexpr int sonicDashMaxCharge = 4;
+    static constexpr float sonicDashMaxTime = 900;
     static constexpr float hurtXsp = 1;
     static constexpr float hurtYsp = -2.5;
     static constexpr float invincibleTime = 120;
@@ -92,6 +93,7 @@ private:
     bool sonicDashing = false;
     bool sonicCharging = false;
     int sonicChargeCount = 0;
+    float sonicDashTime = 0;
     bool hurt = false;
     bool lookUp = false, crouch = false;
     bool useSolidUpTiles = false, useSolidDownTiles = false, useMovingPlatforms = true;
@@ -212,4 +214,3 @@ public:
 };
 
 #endif // TA_CHARACTER_H
-
