@@ -205,7 +205,7 @@ void TA_Character::setHurt() {
         return;
     }
     hurt = true;
-    ground = helitail = jump = sonicDashing = sonicCharging = false;
+    ground = helitail = jump = sonicDashing = sonicCharging = sonicHoming = false;
     damageSound.play();
     TA::gamepad::rumble(0.75, 0.75, 20);
 }
@@ -351,3 +351,4 @@ void TA_Character::updateWaterCollision() {
     }
     water = newWater;
 }
+

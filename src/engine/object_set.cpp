@@ -632,3 +632,31 @@ TA_ObjectSet::~TA_ObjectSet() {
         delete currentObject;
     }
 }
+
+bool TA_ObjectSet::findNearestTarget(TA_Point from, float maxRange, TA_Point& outPosition) {
+    bool found = false;
+    float bestDistSq = maxRange * maxRange;
+
+    auto consider = [&](TA_Rect& hitbox, int collisionType) {
+        if((collisionType & TA_COLLISION_TARGET) == 0) {
+            return;
+        }
+        TA_Point center = (hitbox.getTopLeft() + hitbox.getBottomRight()) * 0.5F;
+        TA_Point diff = center - from;
+        float distSq = diff.x * diff.x + diff.y * diff.y;
+        if(distSq < bestDistSq) {
+            bestDistSq = distSq;
+            outPosition = center;
+            found = true;
+        }
+    };
+
+    for(TA_Object* currentObject : objects) {
+        consider(currentObject->hitbox, currentObject->collisionType);
+        for(TA_Object::HitboxVectorElement& element : currentObject->hitboxVector) {
+            consider(element.hitbox, element.collisionType);
+        }
+    }
+
+    return found;
+}

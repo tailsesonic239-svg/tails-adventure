@@ -4,7 +4,9 @@
 
 void TA_Character::physicsStep() {
     if(!hurt) {
-        if(sonicCharging) {
+        if(sonicHoming) {
+            updateSonicHoming();
+        } else if(sonicCharging) {
             updateSonicCharge();
         } else if(sonicDashing) {
             updateSonicDash();
@@ -53,7 +55,7 @@ void TA_Character::updateGround() {
             velocity.x = 0;
             attackHitbox.setRectangle(TA_Point(6, 20), TA_Point(34, 39));
             hammerSound.play();
-        } else if(lookUp && (!water || remoteRobot)) {
+        } else if(lookUp && characterId != TA_CHARACTER_SONIC && (!water || remoteRobot)) {
             initHelitail();
             ground = false;
         } else {
@@ -66,6 +68,27 @@ void TA_Character::updateGround() {
             ground = false;
         }
     }
+}
+
+void TA_Character::updateSonicHoming() {
+    sonicHomingTime += TA::elapsedTime;
+    attackHitbox.setPosition(position);
+
+    TA_Point toTarget = sonicHomingTarget - position;
+    float distance = toTarget.length();
+
+    if(distance < 8 || sonicHomingTime > sonicHomingMaxTime || ground) {
+        sonicHoming = false;
+        jump = true;
+        jumpReleased = true;
+        jumpSpeed = sonicHomingBounceSpeed;
+        velocity.x = 0;
+        velocity.y = sonicHomingBounceSpeed;
+        return;
+    }
+
+    velocity = toTarget * (sonicHomingSpeed / distance);
+    flip = (velocity.x < 0);
 }
 
 void TA_Character::updateSonicCharge() {
@@ -91,6 +114,7 @@ void TA_Character::updateSonicCharge() {
         sonicCharging = false;
         sonicDashing = true;
         sonicDashTime = 0;
+        sonicDashWallFrames = 0;
         float speed = sonicDashBaseSpeed + sonicDashChargeStep * sonicChargeCount;
         velocity.x = (flip ? -speed : speed);
         jumpSound.play();
@@ -115,12 +139,27 @@ void TA_Character::updateSonicDash() {
     if(!ground) {
         velocity.y += grv * TA::elapsedTime;
         velocity.y = std::min(velocity.y, maxJumpSpeed);
+    } else if(links.controller->isJustPressed(TA_BUTTON_A)) {
+        sonicDashing = false;
+        jumpSound.play();
+        jumpSpeed = jmp;
+        jump = true;
+        jumpReleased = false;
+        jumpTime = 0;
+        ground = false;
+        attackHitbox.setPosition(position);
+        return;
     }
 
     attackHitbox.setPosition(position);
 
     if(wall) {
-        sonicDashing = false;
+        sonicDashWallFrames++;
+        if(sonicDashWallFrames >= 2) {
+            sonicDashing = false;
+        }
+    } else {
+        sonicDashWallFrames = 0;
     }
 }
 
@@ -149,7 +188,18 @@ void TA_Character::updateAir() {
             velocity.y = std::min(maxJumpSpeed, std::max(minJumpSpeed * (water ? 0.5F : 1), jumpSpeed));
         }
         if(jump && jumpReleased && (!water || remoteRobot) && links.controller->isJustPressed(TA_BUTTON_A)) {
-            initHelitail();
+            if(characterId == TA_CHARACTER_SONIC) {
+                TA_Point targetPos;
+                if(links.objectSet->findNearestTarget(position, sonicHomingRange, targetPos)) {
+                    sonicHoming = true;
+                    sonicHomingTime = 0;
+                    sonicHomingTarget = targetPos;
+                    attackHitbox.setRectangle(TA_Point(6, 20), TA_Point(34, 39));
+                    hammerSound.play();
+                }
+            } else {
+                initHelitail();
+            }
         }
     }
 
