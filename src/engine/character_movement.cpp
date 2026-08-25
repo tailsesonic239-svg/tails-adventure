@@ -1,5 +1,6 @@
 #include "character.h"
 #include "controller.h"
+#include "object_set.h"
 #include "tools.h"
 
 void TA_Character::physicsStep() {
