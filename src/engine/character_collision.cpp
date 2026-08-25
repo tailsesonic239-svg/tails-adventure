@@ -144,7 +144,7 @@ void TA_Character::updateCollisions() {
             if((flags & TA_COLLISION_DAMAGE) == 0) {
                 return;
             }
-            if(sonicDashing && (flags & TA_COLLISION_TARGET) != 0) {
+            if((sonicDashing || sonicHoming) && (flags & TA_COLLISION_TARGET) != 0) {
                 return;
             }
             setHurt();
@@ -351,4 +351,3 @@ void TA_Character::updateWaterCollision() {
     }
     water = newWater;
 }
-
