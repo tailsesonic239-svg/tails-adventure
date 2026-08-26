@@ -1,4 +1,5 @@
 #include "resource_manager.h"
+#include <algorithm>
 #include <unordered_map>
 #include "SDL3_image/SDL_image.h"
 #include "error.h"
@@ -17,6 +18,8 @@ namespace TA::resmgr {
     void loadMods();
     Mod loadMod(std::filesystem::path root);
     std::filesystem::path getAssetPath(std::filesystem::path asset);
+    std::filesystem::path getExternalStorageRoot();
+    void migrateOldMods(std::filesystem::path oldMods, std::filesystem::path newMods);
 
     void preloadTextures();
     void preloadChunks();
@@ -38,23 +41,61 @@ void TA::resmgr::load() {
     preloadChunks();
 }
 
-void TA::resmgr::loadMods() {
+std::filesystem::path TA::resmgr::getExternalStorageRoot() {
 #ifdef __ANDROID__
     if(SDL_GetAndroidExternalStorageState() !=
         (SDL_ANDROID_EXTERNAL_STORAGE_READ | SDL_ANDROID_EXTERNAL_STORAGE_WRITE)) {
-        return;
+        return "";
     }
-    std::filesystem::path modsPath = SDL_GetAndroidExternalStoragePath();
-    modsPath /= "mods";
+    return SDL_GetAndroidExternalStoragePath();
 #elifdef TA_UNIX_INSTALL
-    std::filesystem::path modsPath = "~/.local/share/tails-adventure/mods";
+    return "~/.local/share/tails-adventure";
 #else
-    std::filesystem::path modsPath = TA::filesystem::getExecutableDirectory() / "mods";
+    return TA::filesystem::getExecutableDirectory();
 #endif
+}
 
-    if(!std::filesystem::is_directory(modsPath)) {
+void TA::resmgr::migrateOldMods(std::filesystem::path oldMods, std::filesystem::path newMods) {
+    if(!std::filesystem::is_directory(oldMods) || oldMods == newMods) {
         return;
     }
+    if(!std::filesystem::is_directory(newMods) || !std::filesystem::is_empty(newMods)) {
+        return;
+    }
+
+    try {
+        for(const auto& entry : std::filesystem::directory_iterator(oldMods)) {
+            std::filesystem::rename(entry.path(), newMods / entry.path().filename());
+        }
+        TA::printLog("%s", "migrated old mods/ folder into Tails-adventure-extra-story/mods");
+    } catch(std::exception& e) {
+        TA::printWarning("failed to migrate old mods folder: %s", e.what());
+    }
+}
+
+std::filesystem::path TA::resmgr::getDataRoot() {
+    std::filesystem::path root = getExternalStorageRoot();
+    if(root.empty()) {
+        return "";
+    }
+
+    std::filesystem::path dataRoot = root / "Tails-adventure-extra-story";
+    std::filesystem::create_directories(dataRoot / "mods");
+    std::filesystem::create_directories(dataRoot / "lang");
+    std::filesystem::create_directories(dataRoot / "user");
+
+    migrateOldMods(root / "mods", dataRoot / "mods");
+
+    return dataRoot;
+}
+
+void TA::resmgr::loadMods() {
+    std::filesystem::path dataRoot = getDataRoot();
+
+    if(dataRoot.empty()) {
+        return;
+    }
+    std::filesystem::path modsPath = dataRoot / "mods";
 
     std::vector<Mod> mods;
     for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
@@ -212,6 +253,46 @@ int TA::resmgr::getLoadedMods() {
 
 int TA::resmgr::getTotalMods() {
     return totalMods;
+}
+
+std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
+    std::vector<ModInfo> result;
+
+    std::filesystem::path dataRoot = getDataRoot();
+    if(dataRoot.empty()) {
+        return result;
+    }
+    std::filesystem::path modsPath = dataRoot / "mods";
+
+    for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
+        if(!std::filesystem::is_directory(mod.path())) {
+            continue;
+        }
+
+        ModInfo info;
+        info.name = mod.path().filename().generic_string();
+        info.enabled = std::filesystem::is_regular_file(mod.path() / "enabled") &&
+            TA::filesystem::readFile(mod.path() / "enabled").front() == '1';
+        result.push_back(info);
+    }
+
+    std::sort(result.begin(), result.end(), [](const ModInfo& a, const ModInfo& b) { return a.name < b.name; });
+    return result;
+}
+
+void TA::resmgr::setModEnabled(const std::string& name, bool enabled) {
+    std::filesystem::path dataRoot = getDataRoot();
+    if(dataRoot.empty()) {
+        return;
+    }
+    std::filesystem::path modsPath = dataRoot / "mods";
+
+    std::filesystem::path modPath = modsPath / name;
+    if(!std::filesystem::is_directory(modPath)) {
+        return;
+    }
+
+    TA::filesystem::writeFile(modPath / "enabled", (enabled ? "1" : "0"));
 }
 
 void TA::resmgr::quit() {

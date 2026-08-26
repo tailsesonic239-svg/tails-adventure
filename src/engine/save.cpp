@@ -4,6 +4,7 @@
 #include <sstream>
 #include "error.h"
 #include "filesystem.h"
+#include "resource_manager.h"
 
 namespace TA {
     namespace save {
@@ -51,23 +52,37 @@ void TA::save::writeToFile() {
 }
 
 std::filesystem::path TA::save::getSaveFileName() {
+    std::filesystem::path dataRoot = TA::resmgr::getDataRoot();
+    if(dataRoot.empty()) {
 #ifdef __ANDROID__
-    const char* path = nullptr;
-    if(SDL_GetAndroidExternalStorageState() ==
-        (SDL_ANDROID_EXTERNAL_STORAGE_READ | SDL_ANDROID_EXTERNAL_STORAGE_WRITE)) {
-        path = SDL_GetAndroidExternalStoragePath();
-    }
-    if(path != nullptr) {
-        return std::filesystem::path(path) / "config";
-    }
-    return std::filesystem::path(SDL_GetAndroidInternalStoragePath()) / "config";
-#elifdef TA_UNIX_INSTALL
-    std::filesystem::path path = std::filesystem::path(getenv("HOME")) / ".local/share/tails-adventure";
-    std::filesystem::create_directories(path);
-    return path / "config";
+        return std::filesystem::path(SDL_GetAndroidInternalStoragePath()) / "config";
 #else
-    return TA::filesystem::getExecutableDirectory() / "config";
+        return TA::filesystem::getExecutableDirectory() / "config";
 #endif
+    }
+
+    std::filesystem::path newPath = dataRoot / "user" / "config";
+
+    if(!std::filesystem::exists(newPath)) {
+        std::filesystem::path oldPath;
+#ifdef __ANDROID__
+        oldPath = std::filesystem::path(SDL_GetAndroidExternalStoragePath()) / "config";
+#elifdef TA_UNIX_INSTALL
+        oldPath = std::filesystem::path(getenv("HOME")) / ".local/share/tails-adventure" / "config";
+#else
+        oldPath = TA::filesystem::getExecutableDirectory() / "config";
+#endif
+        if(std::filesystem::exists(oldPath)) {
+            try {
+                std::filesystem::copy_file(oldPath, newPath);
+                TA::printLog("%s", "migrated old save file into Tails-adventure-extra-story/user");
+            } catch(std::exception& e) {
+                TA::printWarning("failed to migrate old save file: %s", e.what());
+            }
+        }
+    }
+
+    return newPath;
 }
 
 long long TA::save::getParameter(std::string name) {
