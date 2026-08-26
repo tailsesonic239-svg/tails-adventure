@@ -116,6 +116,7 @@ void TA_Character::updateSonicCharge() {
         sonicDashing = true;
         sonicDashTime = 0;
         sonicDashWallFrames = 0;
+        sonicDashWallX = position.x;
         float speed = sonicDashBaseSpeed + sonicDashChargeStep * sonicChargeCount;
         velocity.x = (flip ? -speed : speed);
         jumpSound.play();
@@ -155,7 +156,12 @@ void TA_Character::updateSonicDash() {
     attackHitbox.setPosition(position);
 
     if(wall) {
-        sonicDashWallFrames++;
+        if(sonicDashWallFrames > 0 && TA::equal(position.x, sonicDashWallX)) {
+            sonicDashWallFrames++;
+        } else {
+            sonicDashWallFrames = 1;
+            sonicDashWallX = position.x;
+        }
         if(sonicDashWallFrames >= 2) {
             sonicDashing = false;
         }

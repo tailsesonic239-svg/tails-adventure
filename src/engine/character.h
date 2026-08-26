@@ -99,6 +99,7 @@ private:
     int sonicChargeCount = 0;
     float sonicDashTime = 0;
     int sonicDashWallFrames = 0;
+    float sonicDashWallX = 0;
     bool sonicHoming = false;
     float sonicHomingTime = 0;
     TA_Point sonicHomingTarget;
