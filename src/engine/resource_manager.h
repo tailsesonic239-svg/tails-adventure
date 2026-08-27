@@ -12,7 +12,9 @@ namespace TA {
     namespace resmgr {
         struct ModInfo {
             std::string name;
+            std::string description;
             bool enabled = false;
+            bool hasIcon = false;
         };
 
         void load();

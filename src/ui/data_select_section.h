@@ -4,6 +4,7 @@
 #include "character.h"
 #include "font.h"
 #include "main_menu_section.h"
+#include "resource_manager.h"
 #include "sound.h"
 
 class TA_DataSelectSection : public TA_MainMenuSection {
@@ -26,6 +27,8 @@ private:
     void updateSelection();
     void updateCharacterSelect();
     void drawCharacterSelect();
+    void updateModsBrowse();
+    void drawModsBrowse();
     bool updateTouchscreenSelection();
     int getSavePercent(int save);
     std::string getSaveTime(int save);
@@ -33,6 +36,7 @@ private:
     void confirmSaveAndEnter();
     void drawCustomEntries();
     void drawMultiplayerEntry();
+    void drawModsEntry();
     void drawSaveEntries();
     void drawModCount();
     void drawSplash();
@@ -50,10 +54,10 @@ private:
     std::vector<std::string> splashSequence;
     float splashTimer = 0;
 
-    std::array<TA_OnscreenButton, 10> buttons;
+    std::array<TA_OnscreenButton, 11> buttons;
     TA_OnscreenButton characterSelectTailsButton, characterSelectSonicButton, characterSelectBackButton;
     float position = 0, scrollVelocity = 0;
-    int selection = 2, createdSave = -1, alpha = 255;
+    int selection = 3, createdSave = -1, alpha = 255;
     bool locked = false;
 
     // Tela de escolha de personagem, mostrada depois de escolher o save
@@ -61,6 +65,11 @@ private:
     bool choosingCharacter = false;
     int pendingSave = -1;
     TA_CharacterID pendingCharacter = TA_CHARACTER_TAILS;
+
+    // Tela de listar/ativar mods
+    bool browsingMods = false;
+    int modsBrowseSelection = 0;
+    std::vector<TA::resmgr::ModInfo> modsBrowseList;
 };
 
 #endif // DATA_SELECT_SECTION_H

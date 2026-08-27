@@ -1,5 +1,7 @@
 #include "resource_manager.h"
 #include <algorithm>
+#include <cctype>
+#include <sstream>
 #include <unordered_map>
 #include "SDL3_image/SDL_image.h"
 #include "error.h"
@@ -16,10 +18,15 @@ namespace TA::resmgr {
     };
 
     void loadMods();
-    Mod loadMod(std::filesystem::path root);
+    Mod loadMod(std::filesystem::path root, const std::unordered_map<std::string, bool>& active);
     std::filesystem::path getAssetPath(std::filesystem::path asset);
     std::filesystem::path getExternalStorageRoot();
     void migrateOldMods(std::filesystem::path oldMods, std::filesystem::path newMods);
+
+    // arquivo central que guarda "nome_do_mod = true/false"
+    std::filesystem::path getModsActiveFilePath();
+    std::unordered_map<std::string, bool> readModsActive();
+    void writeModsActive(const std::unordered_map<std::string, bool>& active);
 
     void preloadTextures();
     void preloadChunks();
@@ -89,6 +96,66 @@ std::filesystem::path TA::resmgr::getDataRoot() {
     return dataRoot;
 }
 
+std::filesystem::path TA::resmgr::getModsActiveFilePath() {
+    std::filesystem::path dataRoot = getDataRoot();
+    if(dataRoot.empty()) {
+        return "";
+    }
+    return dataRoot / "mods" / "mods-active.toml";
+}
+
+std::unordered_map<std::string, bool> TA::resmgr::readModsActive() {
+    std::unordered_map<std::string, bool> result;
+
+    std::filesystem::path path = getModsActiveFilePath();
+    if(path.empty() || !std::filesystem::is_regular_file(path)) {
+        return result;
+    }
+
+    auto trim = [](std::string& s) {
+        while(!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) s.erase(s.begin());
+        while(!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
+    };
+
+    std::istringstream stream(TA::filesystem::readFile(path));
+    std::string line;
+    while(std::getline(stream, line)) {
+        size_t eq = line.find('=');
+        if(eq == std::string::npos) continue;
+
+        std::string key = line.substr(0, eq);
+        std::string value = line.substr(eq + 1);
+        trim(key);
+        trim(value);
+        if(key.empty()) continue;
+
+        result[key] = (value == "true");
+    }
+
+    return result;
+}
+
+void TA::resmgr::writeModsActive(const std::unordered_map<std::string, bool>& active) {
+    std::filesystem::path path = getModsActiveFilePath();
+    if(path.empty()) {
+        return;
+    }
+
+    std::vector<std::string> keys;
+    keys.reserve(active.size());
+    for(const auto& entry : active) {
+        keys.push_back(entry.first);
+    }
+    std::sort(keys.begin(), keys.end());
+
+    std::string content;
+    for(const std::string& key : keys) {
+        content += key + " = " + (active.at(key) ? "true" : "false") + "\n";
+    }
+
+    TA::filesystem::writeFile(path, content);
+}
+
 void TA::resmgr::loadMods() {
     std::filesystem::path dataRoot = getDataRoot();
 
@@ -97,10 +164,12 @@ void TA::resmgr::loadMods() {
     }
     std::filesystem::path modsPath = dataRoot / "mods";
 
+    std::unordered_map<std::string, bool> active = readModsActive();
+
     std::vector<Mod> mods;
     for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
         if(std::filesystem::exists(mod.path()) && std::filesystem::is_directory(mod.path())) {
-            mods.push_back(loadMod(mod.path()));
+            mods.push_back(loadMod(mod.path(), active));
         }
     }
 
@@ -128,24 +197,32 @@ void TA::resmgr::loadMods() {
     }
 }
 
-TA::resmgr::Mod TA::resmgr::loadMod(std::filesystem::path root) {
+TA::resmgr::Mod TA::resmgr::loadMod(std::filesystem::path root, const std::unordered_map<std::string, bool>& active) {
     Mod mod = Mod();
     mod.root = root;
 
-    if(!std::filesystem::is_regular_file(root / "enabled") ||
-        TA::filesystem::readFile(root / "enabled").front() != '1') {
-        mod.enabled = false;
+    std::string name = root.filename().generic_string();
+    auto it = active.find(name);
+    mod.enabled = (it != active.end()) && it->second;
+
+    if(std::filesystem::is_regular_file(root / "priority")) {
+        mod.priority = std::stoi(TA::filesystem::readFile(root / "priority"));
+    }
+
+    if(!mod.enabled) {
         return mod;
     }
 
-    mod.enabled = true;
     for(const auto& file : std::filesystem::recursive_directory_iterator(root)) {
-        if(std::filesystem::is_regular_file(file.path())) {
-            mod.files.emplace_back(file.path());
+        if(!std::filesystem::is_regular_file(file.path())) {
+            continue;
         }
-    }
-    if(std::filesystem::is_regular_file(root / "priority")) {
-        mod.priority = std::stoi(TA::filesystem::readFile(root / "priority"));
+        std::string rel = std::filesystem::relative(file.path(), root).generic_string();
+        // mod.toml (manifesto), icon.png e a pasta scripts/ nao sao assets do jogo
+        if(rel == "mod.toml" || rel == "icon.png" || rel.starts_with("scripts/")) {
+            continue;
+        }
+        mod.files.emplace_back(file.path());
     }
 
     return mod;
@@ -264,6 +341,8 @@ std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
     }
     std::filesystem::path modsPath = dataRoot / "mods";
 
+    std::unordered_map<std::string, bool> active = readModsActive();
+
     for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
         if(!std::filesystem::is_directory(mod.path())) {
             continue;
@@ -271,8 +350,22 @@ std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
 
         ModInfo info;
         info.name = mod.path().filename().generic_string();
-        info.enabled = std::filesystem::is_regular_file(mod.path() / "enabled") &&
-            TA::filesystem::readFile(mod.path() / "enabled").front() == '1';
+
+        auto it = active.find(info.name);
+        info.enabled = (it != active.end()) && it->second;
+
+        info.hasIcon = std::filesystem::is_regular_file(mod.path() / "icon.png");
+
+        std::filesystem::path manifestPath = mod.path() / "mod.toml";
+        if(std::filesystem::is_regular_file(manifestPath)) {
+            try {
+                toml::value manifest = toml::parse_str(TA::filesystem::readFile(manifestPath));
+                info.description = toml::find_or<std::string>(manifest, "description", "");
+            } catch(std::exception& e) {
+                TA::printWarning("failed to read mod.toml for %s: %s", info.name.c_str(), e.what());
+            }
+        }
+
         result.push_back(info);
     }
 
@@ -286,13 +379,13 @@ void TA::resmgr::setModEnabled(const std::string& name, bool enabled) {
         return;
     }
     std::filesystem::path modsPath = dataRoot / "mods";
-
-    std::filesystem::path modPath = modsPath / name;
-    if(!std::filesystem::is_directory(modPath)) {
+    if(!std::filesystem::is_directory(modsPath / name)) {
         return;
     }
 
-    TA::filesystem::writeFile(modPath / "enabled", (enabled ? "1" : "0"));
+    std::unordered_map<std::string, bool> active = readModsActive();
+    active[name] = enabled;
+    writeModsActive(active);
 }
 
 void TA::resmgr::quit() {

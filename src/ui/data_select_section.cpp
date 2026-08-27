@@ -24,7 +24,7 @@ void TA_DataSelectSection::load() {
     selectSound.load("sound/select_item.ogg", TA_SOUND_CHANNEL_SFX1);
     loadSaveSound.load("sound/load_save.ogg", TA_SOUND_CHANNEL_SFX1);
 
-    for(int pos = 0; pos < 10; pos++) {
+    for(int pos = 0; pos < 11; pos++) {
         TA_Point topLeft{menuStart + menuOffset * pos, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
         TA_Point bottomRight = topLeft + TA_Point(48, (pos == 0 ? 48 : 72));
         buttons[pos].setRectangle(topLeft, bottomRight);
@@ -51,6 +51,11 @@ TA_MainMenuState TA_DataSelectSection::update() {
 
     if(choosingCharacter) {
         updateCharacterSelect();
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
+    if(browsingMods) {
+        updateModsBrowse();
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
@@ -103,6 +108,30 @@ void TA_DataSelectSection::updateCharacterSelect() {
     }
 }
 
+void TA_DataSelectSection::updateModsBrowse() {
+    if(controller->isJustPressed(TA_BUTTON_B)) {
+        browsingMods = false;
+        return;
+    }
+
+    if(controller->isJustChangedDirection() &&
+        (controller->getDirection() == TA_DIRECTION_UP || controller->getDirection() == TA_DIRECTION_DOWN)) {
+        if(!modsBrowseList.empty()) {
+            int delta = (controller->getDirection() == TA_DIRECTION_DOWN) ? 1 : -1;
+            int count = static_cast<int>(modsBrowseList.size());
+            modsBrowseSelection = (modsBrowseSelection + delta + count) % count;
+            switchSound.play();
+        }
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_A) && !modsBrowseList.empty()) {
+        TA::resmgr::ModInfo& mod = modsBrowseList[modsBrowseSelection];
+        mod.enabled = !mod.enabled;
+        TA::resmgr::setModEnabled(mod.name, mod.enabled);
+        selectSound.play();
+    }
+}
+
 TA_MainMenuState TA_DataSelectSection::processSelection() {
     if(selection == 0) {
         selectSound.play();
@@ -111,13 +140,21 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
 
     if(selection == 1) {
         selectSound.play();
+        modsBrowseList = TA::resmgr::getModList();
+        modsBrowseSelection = 0;
+        browsingMods = true;
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
+    if(selection == 2) {
+        selectSound.play();
         // TODO: trocar por TA_MAIN_MENU_MULTIPLAYER quando a tela existir
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
     selectSound.play();
     choosingCharacter = true;
-    pendingSave = selection - 2;
+    pendingSave = selection - 3;
     if(TA::save::saveExists(pendingSave)) {
         pendingCharacter = static_cast<TA_CharacterID>(
             TA::save::getSaveParameter("character", "save_" + std::to_string(pendingSave)));
@@ -154,14 +191,14 @@ void TA_DataSelectSection::updateScroll() {
 
     position += scrollVelocity;
     position = std::max(position, float(0));
-    position = std::min(position, menuStart + 10 * menuOffset - TA::screenWidth);
+    position = std::min(position, menuStart + 11 * menuOffset - TA::screenWidth);
 }
 
 void TA_DataSelectSection::updateSelection() {
     // menuStart + selection * menuOffset + 24 - need = TA::screenWidth / 2
     float need = menuStart + selection * menuOffset + 24 - (float)TA::screenWidth / 2;
     need = std::max(need, float(0));
-    need = std::min(need, menuStart + 10 * menuOffset - TA::screenWidth);
+    need = std::min(need, menuStart + 11 * menuOffset - TA::screenWidth);
 
     if(!TA::equal(position, need)) {
         if(position > need) {
@@ -175,7 +212,7 @@ void TA_DataSelectSection::updateSelection() {
             selection--;
             switchSound.play();
         }
-        if(selection + 1 < 10 && controller->getDirection() == TA_DIRECTION_RIGHT) {
+        if(selection + 1 < 11 && controller->getDirection() == TA_DIRECTION_RIGHT) {
             selection++;
             switchSound.play();
         }
@@ -183,7 +220,7 @@ void TA_DataSelectSection::updateSelection() {
 }
 
 bool TA_DataSelectSection::updateTouchscreenSelection() {
-    for(int pos = 0; pos < 10; pos++) {
+    for(int pos = 0; pos < 11; pos++) {
         buttons[pos].setPosition({-position, 0});
         buttons[pos].update();
 
@@ -200,12 +237,14 @@ bool TA_DataSelectSection::updateTouchscreenSelection() {
 
 void TA_DataSelectSection::draw() {
     drawCustomEntries();
+    drawModsEntry();
     drawMultiplayerEntry();
     drawSaveEntries();
     drawModCount();
     drawSplash();
     drawSelector();
     drawCharacterSelect();
+    drawModsBrowse();
 }
 
 void TA_DataSelectSection::drawCharacterSelect() {
@@ -251,14 +290,69 @@ void TA_DataSelectSection::drawCharacterSelect() {
     font.drawText(TA_Point(centerX + spriteOffset - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 4), sonicLabel);
 }
 
+void TA_DataSelectSection::drawModsBrowse() {
+    if(!browsingMods) {
+        return;
+    }
+
+    font.setAlpha(255);
+    splashFont.setAlpha(255);
+    characterSelectFrameSprite.setAlpha(255);
+
+    characterSelectFrameSprite.setPosition(
+        (float)TA::screenWidth / 2 - characterSelectFrameSprite.getWidth() / 2,
+        (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2);
+    characterSelectFrameSprite.draw();
+
+    float centerX = (float)TA::screenWidth / 2;
+    float centerY = (float)TA::screenHeight / 2;
+    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
+
+    splashFont.drawTextCentered(frameTop + 6, "MODS", TA_Point(-1, 0));
+    font.drawText(TA_Point(8, 8), "< BACK");
+
+    if(modsBrowseList.empty()) {
+        font.drawText(TA_Point(centerX - 40, centerY), "sem mods instalados");
+        return;
+    }
+
+    float listY = frameTop + 22;
+    for(int i = 0; i < static_cast<int>(modsBrowseList.size()); i++) {
+        const TA::resmgr::ModInfo& mod = modsBrowseList[i];
+        std::string marker = (i == modsBrowseSelection) ? "> " : "  ";
+        std::string state = mod.enabled ? "[ON] " : "[OFF] ";
+        std::string icon = mod.hasIcon ? " (icon)" : "";
+        font.drawText(TA_Point(centerX - 60, listY + i * 10), marker + state + mod.name + icon);
+    }
+
+    if(modsBrowseSelection < static_cast<int>(modsBrowseList.size())) {
+        const std::string& desc = modsBrowseList[modsBrowseSelection].description;
+        if(!desc.empty()) {
+            font.drawText(TA_Point(centerX - 60, listY + modsBrowseList.size() * 10 + 6), desc);
+        }
+    }
+}
+
 void TA_DataSelectSection::drawCustomEntries() {
     optionsSprite.setAlpha(alpha);
     optionsSprite.setPosition(menuStart - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2);
     optionsSprite.draw();
 }
 
-void TA_DataSelectSection::drawMultiplayerEntry() {
+void TA_DataSelectSection::drawModsEntry() {
     TA_Point entryPosition{menuStart + menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
+
+    entrySprite.setAlpha(alpha);
+    entrySprite.setPosition(entryPosition);
+    entrySprite.draw();
+
+    font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
+    std::string label = "MODS";
+    font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label) / 2, 30), label);
+}
+
+void TA_DataSelectSection::drawMultiplayerEntry() {
+    TA_Point entryPosition{menuStart + 2 * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
 
     entrySprite.setAlpha(alpha);
     entrySprite.setPosition(entryPosition);
@@ -279,7 +373,7 @@ void TA_DataSelectSection::drawSaveEntries() {
 
     for(int num = 0; num < 8; num++) {
         TA_Point entryPosition{
-            menuStart + (num + 2) * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
+            menuStart + (num + 3) * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
         entrySprite.setPosition(entryPosition);
         entrySprite.draw();
 
@@ -335,7 +429,7 @@ void TA_DataSelectSection::drawSelector() {
     if(controller->isTouchscreen() && !locked) {
         selectorRedSprite.setAlpha(255);
         selectorWhiteSprite.setAlpha(0);
-        for(int pos = 0; pos < 10; pos++) {
+        for(int pos = 0; pos < 11; pos++) {
             if(buttons[pos].isPressed()) {
                 selectorPosition = pos;
             }
