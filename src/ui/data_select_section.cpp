@@ -269,7 +269,7 @@ void TA_DataSelectSection::drawCharacterSelect() {
 
     std::string title = "CHOOSE CHARACTER";
     splashFont.drawTextCentered(frameTop + 6, title, TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(8, 8), "< back");
 
     characterSelectTailsSprite.setAnimation("idle");
     characterSelectSonicSprite.setAnimation("idle");
@@ -284,8 +284,8 @@ void TA_DataSelectSection::drawCharacterSelect() {
     characterSelectTailsSprite.draw();
     characterSelectSonicSprite.draw();
 
-    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> TAILS <" : "  TAILS  ";
-    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> SONIC <" : "  SONIC  ";
+    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> tails <" : "  tails  ";
+    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> sonic <" : "  sonic  ";
     font.drawText(TA_Point(centerX - spriteOffset - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 4), tailsLabel);
     font.drawText(TA_Point(centerX + spriteOffset - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 4), sonicLabel);
 }
@@ -309,7 +309,7 @@ void TA_DataSelectSection::drawModsBrowse() {
     float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
 
     splashFont.drawTextCentered(frameTop + 6, "MODS", TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(8, 8), "< back");
 
     if(modsBrowseList.empty()) {
         font.drawText(TA_Point(centerX - 40, centerY), "sem mods instalados");
@@ -320,7 +320,7 @@ void TA_DataSelectSection::drawModsBrowse() {
     for(int i = 0; i < static_cast<int>(modsBrowseList.size()); i++) {
         const TA::resmgr::ModInfo& mod = modsBrowseList[i];
         std::string marker = (i == modsBrowseSelection) ? "> " : "  ";
-        std::string state = mod.enabled ? "[ON] " : "[OFF] ";
+        std::string state = mod.enabled ? "[on] " : "[off] ";
         std::string icon = mod.hasIcon ? " (icon)" : "";
         font.drawText(TA_Point(centerX - 60, listY + i * 10), marker + state + mod.name + icon);
     }
