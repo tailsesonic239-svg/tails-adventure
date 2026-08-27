@@ -116,6 +116,7 @@ add_subdirectory(external/SDL_image EXCLUDE_FROM_ALL)
 add_subdirectory(external/SDL_mixer EXCLUDE_FROM_ALL)
 add_subdirectory(external/tmxpp EXCLUDE_FROM_ALL)
 add_subdirectory(external/toml11 EXCLUDE_FROM_ALL)
+add_subdirectory(external/enet EXCLUDE_FROM_ALL)
 
 target_compile_options(toml11 PRIVATE -Wno-error)
 
@@ -147,6 +148,7 @@ if(ANDROID)
         SDL3_mixer::SDL3_mixer
         tmxpp
         toml11::toml11
+        enet
         ${NDK_LOG_LIB}
     )
 else()
@@ -157,6 +159,7 @@ else()
         SDL3::SDL3-static
         tmxpp
         toml11::toml11
+        enet
     )
 endif()
 if(TARGET SDL3::SDL3main)
@@ -174,6 +177,7 @@ target_include_directories(tails-adventure PRIVATE
     external/SDL_mixer/include
     external/tmxpp/include
     external/toml11/include
+    external/enet/include
     external/eve/include
 )
 
