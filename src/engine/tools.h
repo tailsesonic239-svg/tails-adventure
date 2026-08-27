@@ -6,12 +6,19 @@
 #include "SDL3/SDL.h"
 #include "geometry.h"
 
+class TA_Character;
+
 namespace TA {
     extern SDL_Window* window;
     extern SDL_Renderer* renderer;
 
     extern int screenWidth, screenHeight, scaleFactor;
     extern float elapsedTime;
+
+    // Personagem ativo na fase atual (Tails ou Sonic), ou nullptr fora do
+    // gameplay (menus, tela de save etc). Setado por TA_GameScreen.
+    // Usado pela API de scripting Lua pra expor posição/estado do player.
+    extern TA_Character* activeCharacter;
 
     constexpr float pi = 3.14159265358979323846;
 

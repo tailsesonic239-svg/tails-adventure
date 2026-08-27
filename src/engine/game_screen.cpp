@@ -40,6 +40,7 @@ void TA_GameScreen::init() {
     } else {
         character.setCharacter(static_cast<TA_CharacterID>(TA::save::getSaveParameter("character")));
         character.load(links);
+        TA::activeCharacter = &character;
     }
 
     objectSet.setLinks(links);
@@ -124,4 +125,6 @@ TA_ScreenState TA_GameScreen::update() {
     return TA_SCREENSTATE_CURRENT;
 }
 
-void TA_GameScreen::quit() {}
+void TA_GameScreen::quit() {
+    TA::activeCharacter = nullptr;
+}

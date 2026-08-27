@@ -12,6 +12,8 @@ namespace TA {
     int screenWidth, screenHeight, scaleFactor;
     float elapsedTime;
 
+    TA_Character* activeCharacter = nullptr;
+
     std::string levelPath = "", previousLevelPath = "";
     std::set<std::string> arguments;
 

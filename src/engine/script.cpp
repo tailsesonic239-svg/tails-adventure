@@ -10,8 +10,10 @@ extern "C" {
 }
 
 #include "error.h"
+#include "character.h"
 #include "filesystem.h"
 #include "resource_manager.h"
+#include "tools.h"
 
 namespace {
     struct TA_ModScript {
@@ -32,12 +34,51 @@ namespace {
         return 0;
     }
 
+    // ta.get_player_x() / ta.get_player_y() -> number, or nil if there's no
+    // active character right now (menus, sea fox stages, etc).
+    int lua_ta_get_player_x(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushnumber(L, TA::activeCharacter->getPosition().x);
+        return 1;
+    }
+
+    int lua_ta_get_player_y(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushnumber(L, TA::activeCharacter->getPosition().y);
+        return 1;
+    }
+
+    // ta.get_character() -> "tails" | "sonic" | nil
+    int lua_ta_get_character(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushstring(L, TA::activeCharacter->getCharacter() == TA_CHARACTER_SONIC ? "sonic" : "tails");
+        return 1;
+    }
+
     void registerApi(lua_State* L, const std::string& modName) {
         lua_newtable(L);
 
         lua_pushstring(L, modName.c_str());
         lua_pushcclosure(L, lua_ta_log, 1);
         lua_setfield(L, -2, "log");
+
+        lua_pushcfunction(L, lua_ta_get_player_x);
+        lua_setfield(L, -2, "get_player_x");
+
+        lua_pushcfunction(L, lua_ta_get_player_y);
+        lua_setfield(L, -2, "get_player_y");
+
+        lua_pushcfunction(L, lua_ta_get_character);
+        lua_setfield(L, -2, "get_character");
 
         lua_setglobal(L, "ta");
     }

@@ -167,9 +167,15 @@ void TA::resmgr::loadMods() {
     std::unordered_map<std::string, bool> active = readModsActive();
 
     std::vector<Mod> mods;
-    for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
-        if(std::filesystem::exists(mod.path()) && std::filesystem::is_directory(mod.path())) {
-            mods.push_back(loadMod(mod.path(), active));
+    std::error_code dirEc;
+    if(std::filesystem::is_directory(modsPath, dirEc) && !dirEc) {
+        std::error_code iterEc;
+        for(auto it = std::filesystem::directory_iterator(modsPath, iterEc);
+            !iterEc && it != std::filesystem::directory_iterator();
+            it.increment(iterEc)) {
+            if(std::filesystem::exists(it->path()) && std::filesystem::is_directory(it->path())) {
+                mods.push_back(loadMod(it->path(), active));
+            }
         }
     }
 
@@ -341,9 +347,21 @@ std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
     }
     std::filesystem::path modsPath = dataRoot / "mods";
 
+    std::error_code dirEc;
+    if(!std::filesystem::is_directory(modsPath, dirEc) || dirEc) {
+        // Pasta ainda não existe/não acessível nesse momento (ex: timing de
+        // permissão de storage no Android). Sem isso o directory_iterator
+        // abaixo lançaria uma exceção e derrubaria o jogo.
+        return result;
+    }
+
     std::unordered_map<std::string, bool> active = readModsActive();
 
-    for(const auto& mod : std::filesystem::directory_iterator(modsPath)) {
+    std::error_code iterEc;
+    for(auto it = std::filesystem::directory_iterator(modsPath, iterEc);
+        !iterEc && it != std::filesystem::directory_iterator();
+        it.increment(iterEc)) {
+        const auto& mod = *it;
         if(!std::filesystem::is_directory(mod.path())) {
             continue;
         }
@@ -351,8 +369,8 @@ std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
         ModInfo info;
         info.name = mod.path().filename().generic_string();
 
-        auto it = active.find(info.name);
-        info.enabled = (it != active.end()) && it->second;
+        auto activeIt = active.find(info.name);
+        info.enabled = (activeIt != active.end()) && activeIt->second;
 
         info.hasIcon = std::filesystem::is_regular_file(mod.path() / "icon.png");
 
@@ -367,6 +385,9 @@ std::vector<TA::resmgr::ModInfo> TA::resmgr::getModList() {
         }
 
         result.push_back(info);
+    }
+    if(iterEc) {
+        TA::printWarning("failed to list mods folder: %s", iterEc.message().c_str());
     }
 
     std::sort(result.begin(), result.end(), [](const ModInfo& a, const ModInfo& b) { return a.name < b.name; });
