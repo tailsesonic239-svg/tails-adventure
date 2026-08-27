@@ -24,7 +24,7 @@ void TA_DataSelectSection::load() {
     selectSound.load("sound/select_item.ogg", TA_SOUND_CHANNEL_SFX1);
     loadSaveSound.load("sound/load_save.ogg", TA_SOUND_CHANNEL_SFX1);
 
-    for(int pos = 0; pos < 9; pos++) {
+    for(int pos = 0; pos < 10; pos++) {
         TA_Point topLeft{menuStart + menuOffset * pos, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
         TA_Point bottomRight = topLeft + TA_Point(48, (pos == 0 ? 48 : 72));
         buttons[pos].setRectangle(topLeft, bottomRight);
@@ -109,9 +109,15 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
         return TA_MAIN_MENU_OPTIONS;
     }
 
+    if(selection == 1) {
+        selectSound.play();
+        // TODO: trocar por TA_MAIN_MENU_MULTIPLAYER quando a tela existir
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
     selectSound.play();
     choosingCharacter = true;
-    pendingSave = selection - 1;
+    pendingSave = selection - 2;
     if(TA::save::saveExists(pendingSave)) {
         pendingCharacter = static_cast<TA_CharacterID>(
             TA::save::getSaveParameter("character", "save_" + std::to_string(pendingSave)));
@@ -148,14 +154,14 @@ void TA_DataSelectSection::updateScroll() {
 
     position += scrollVelocity;
     position = std::max(position, float(0));
-    position = std::min(position, menuStart + 9 * menuOffset - TA::screenWidth);
+    position = std::min(position, menuStart + 10 * menuOffset - TA::screenWidth);
 }
 
 void TA_DataSelectSection::updateSelection() {
     // menuStart + selection * menuOffset + 24 - need = TA::screenWidth / 2
     float need = menuStart + selection * menuOffset + 24 - (float)TA::screenWidth / 2;
     need = std::max(need, float(0));
-    need = std::min(need, menuStart + 9 * menuOffset - TA::screenWidth);
+    need = std::min(need, menuStart + 10 * menuOffset - TA::screenWidth);
 
     if(!TA::equal(position, need)) {
         if(position > need) {
@@ -169,7 +175,7 @@ void TA_DataSelectSection::updateSelection() {
             selection--;
             switchSound.play();
         }
-        if(selection + 1 < 9 && controller->getDirection() == TA_DIRECTION_RIGHT) {
+        if(selection + 1 < 10 && controller->getDirection() == TA_DIRECTION_RIGHT) {
             selection++;
             switchSound.play();
         }
@@ -177,7 +183,7 @@ void TA_DataSelectSection::updateSelection() {
 }
 
 bool TA_DataSelectSection::updateTouchscreenSelection() {
-    for(int pos = 0; pos < 9; pos++) {
+    for(int pos = 0; pos < 10; pos++) {
         buttons[pos].setPosition({-position, 0});
         buttons[pos].update();
 
@@ -194,6 +200,7 @@ bool TA_DataSelectSection::updateTouchscreenSelection() {
 
 void TA_DataSelectSection::draw() {
     drawCustomEntries();
+    drawMultiplayerEntry();
     drawSaveEntries();
     drawModCount();
     drawSplash();
@@ -250,6 +257,20 @@ void TA_DataSelectSection::drawCustomEntries() {
     optionsSprite.draw();
 }
 
+void TA_DataSelectSection::drawMultiplayerEntry() {
+    TA_Point entryPosition{menuStart + menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
+
+    entrySprite.setAlpha(alpha);
+    entrySprite.setPosition(entryPosition);
+    entrySprite.draw();
+
+    font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
+    std::string label1 = "MULTI";
+    std::string label2 = "PLAYER";
+    font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label1) / 2, 26), label1);
+    font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label2) / 2, 36), label2);
+}
+
 void TA_DataSelectSection::drawSaveEntries() {
     entrySprite.setAlpha(alpha);
     previewSprite.setAlpha(alpha);
@@ -258,7 +279,7 @@ void TA_DataSelectSection::drawSaveEntries() {
 
     for(int num = 0; num < 8; num++) {
         TA_Point entryPosition{
-            menuStart + (num + 1) * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
+            menuStart + (num + 2) * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
         entrySprite.setPosition(entryPosition);
         entrySprite.draw();
 
@@ -314,7 +335,7 @@ void TA_DataSelectSection::drawSelector() {
     if(controller->isTouchscreen() && !locked) {
         selectorRedSprite.setAlpha(255);
         selectorWhiteSprite.setAlpha(0);
-        for(int pos = 0; pos < 9; pos++) {
+        for(int pos = 0; pos < 10; pos++) {
             if(buttons[pos].isPressed()) {
                 selectorPosition = pos;
             }

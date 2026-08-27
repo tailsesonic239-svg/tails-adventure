@@ -32,6 +32,7 @@ private:
     TA_MainMenuState processSelection();
     void confirmSaveAndEnter();
     void drawCustomEntries();
+    void drawMultiplayerEntry();
     void drawSaveEntries();
     void drawModCount();
     void drawSplash();
@@ -49,10 +50,10 @@ private:
     std::vector<std::string> splashSequence;
     float splashTimer = 0;
 
-    std::array<TA_OnscreenButton, 9> buttons;
+    std::array<TA_OnscreenButton, 10> buttons;
     TA_OnscreenButton characterSelectTailsButton, characterSelectSonicButton, characterSelectBackButton;
     float position = 0, scrollVelocity = 0;
-    int selection = 1, createdSave = -1, alpha = 255;
+    int selection = 2, createdSave = -1, alpha = 255;
     bool locked = false;
 
     // Tela de escolha de personagem, mostrada depois de escolher o save
