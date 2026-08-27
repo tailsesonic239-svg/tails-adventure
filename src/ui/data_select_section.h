@@ -70,6 +70,8 @@ private:
     bool browsingMods = false;
     int modsBrowseSelection = 0;
     std::vector<TA::resmgr::ModInfo> modsBrowseList;
+    TA_OnscreenButton modsBrowseBackButton;
+    std::array<TA_OnscreenButton, 8> modsBrowseRowButtons;
 };
 
 #endif // DATA_SELECT_SECTION_H

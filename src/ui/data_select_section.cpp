@@ -109,6 +109,35 @@ void TA_DataSelectSection::updateCharacterSelect() {
 }
 
 void TA_DataSelectSection::updateModsBrowse() {
+    float centerY = (float)TA::screenHeight / 2;
+    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
+    float listY = frameTop + 22;
+
+    if(controller->isTouchscreen()) {
+        modsBrowseBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
+        modsBrowseBackButton.update();
+        if(modsBrowseBackButton.isReleased()) {
+            browsingMods = false;
+            return;
+        }
+
+        int count = std::min(static_cast<int>(modsBrowseList.size()), static_cast<int>(modsBrowseRowButtons.size()));
+        for(int i = 0; i < count; i++) {
+            modsBrowseRowButtons[i].setRectangle(
+                TA_Point(0, listY + i * 10 - 2), TA_Point((float)TA::screenWidth, listY + i * 10 + 8));
+            modsBrowseRowButtons[i].update();
+
+            if(modsBrowseRowButtons[i].isReleased()) {
+                modsBrowseSelection = i;
+                TA::resmgr::ModInfo& mod = modsBrowseList[i];
+                mod.enabled = !mod.enabled;
+                TA::resmgr::setModEnabled(mod.name, mod.enabled);
+                selectSound.play();
+            }
+        }
+        return;
+    }
+
     if(controller->isJustPressed(TA_BUTTON_B)) {
         browsingMods = false;
         return;
@@ -312,7 +341,10 @@ void TA_DataSelectSection::drawModsBrowse() {
     font.drawText(TA_Point(8, 8), "< back");
 
     if(modsBrowseList.empty()) {
-        font.drawText(TA_Point(centerX - 40, centerY), "sem mods instalados");
+        std::string line1 = "sem mods";
+        std::string line2 = "instalados";
+        font.drawText(TA_Point(centerX - font.getTextWidth(line1) / 2, centerY - 6), line1);
+        font.drawText(TA_Point(centerX - font.getTextWidth(line2) / 2, centerY + 4), line2);
         return;
     }
 
