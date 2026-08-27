@@ -120,6 +120,21 @@ add_subdirectory(external/enet EXCLUDE_FROM_ALL)
 
 target_compile_options(toml11 PRIVATE -Wno-error)
 
+# --- Lua 5.4 (vendored under external/lua, built as a plain static lib) ---
+file(GLOB LUA_SOURCES external/lua/*.c)
+list(REMOVE_ITEM LUA_SOURCES
+    ${CMAKE_SOURCE_DIR}/external/lua/lua.c
+    ${CMAKE_SOURCE_DIR}/external/lua/luac.c
+)
+add_library(lua STATIC ${LUA_SOURCES})
+target_include_directories(lua PUBLIC external/lua)
+if(ANDROID)
+    target_compile_definitions(lua PRIVATE LUA_USE_LINUX)
+elseif(UNIX)
+    target_compile_definitions(lua PRIVATE LUA_USE_LINUX)
+    target_link_libraries(lua PRIVATE m dl)
+endif()
+
 if(WIN32)
     enable_language("RC")
     set(WIN32_RESOURCES res/icon.rc)
@@ -149,6 +164,7 @@ if(ANDROID)
         tmxpp
         toml11::toml11
         enet
+        lua
         ${NDK_LOG_LIB}
     )
 else()
@@ -160,6 +176,7 @@ else()
         tmxpp
         toml11::toml11
         enet
+        lua
     )
 endif()
 if(TARGET SDL3::SDL3main)
@@ -179,6 +196,7 @@ target_include_directories(tails-adventure PRIVATE
     external/toml11/include
     external/enet/include
     external/eve/include
+    external/lua
 )
 
 if(TA_STATIC)

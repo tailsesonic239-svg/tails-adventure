@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "resource_manager.h"
 #include "save.h"
+#include "script.h"
 #include "sound.h"
 #include "tools.h"
 #include "touchscreen.h"
@@ -16,6 +17,7 @@ TA_Game::TA_Game() {
     TA::random::init(std::chrono::high_resolution_clock::now().time_since_epoch().count());
     TA::gamepad::init();
     TA::resmgr::load();
+    TA::script::load();
 
     font.loadFont("fonts/pause_menu.toml");
 
@@ -128,6 +130,8 @@ void TA_Game::update() {
     // TA::elapsedTime /= 10;
     startTime = currentTime;
 
+    TA::script::update(TA::elapsedTime);
+
     SDL_SetRenderTarget(TA::renderer, targetTexture);
     SDL_SetRenderDrawColor(TA::renderer, 0, 0, 0, 255);
     SDL_RenderClear(TA::renderer);
@@ -162,6 +166,7 @@ void TA_Game::update() {
 TA_Game::~TA_Game() {
     TA::save::writeToFile();
     TA::gamepad::quit();
+    TA::script::quit();
     TA::resmgr::quit();
 
     SDL_DestroyTexture(targetTexture);
