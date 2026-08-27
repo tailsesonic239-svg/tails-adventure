@@ -35,3 +35,6 @@ sfx = "sfx"
 
 game = "game"
 sonic_bomb = "sonic bomb"
+
+mods = "mods"
+mods_restart = "restart to apply"

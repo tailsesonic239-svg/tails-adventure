@@ -33,7 +33,7 @@ void TA_Game::initSDL() {
 }
 
 void TA_Game::createWindow() {
-    TA::window = SDL_CreateWindow("Tails Adventure", defaultWindowWidth, defaultWindowHeight, SDL_WINDOW_FULLSCREEN);
+    TA::window = SDL_CreateWindow("Tails Adventure ES", defaultWindowWidth, defaultWindowHeight, SDL_WINDOW_FULLSCREEN);
     if(TA::window == nullptr) {
         TA::handleSDLError("%s", "failed to create window");
     }

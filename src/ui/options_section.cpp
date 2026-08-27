@@ -346,6 +346,34 @@ private:
     std::string off = getOptionString("off");
 };
 
+class TA_ModToggleOption : public TA_Option {
+public:
+    TA_ModToggleOption(std::string modName, bool enabled) : modName(modName), enabled(enabled), bootEnabled(enabled) {}
+
+    std::string getName() override { return modName; }
+
+    std::string getValue() override {
+        std::string value = (enabled ? on : off);
+        if(enabled != bootEnabled) {
+            value += " (" + restart + ")";
+        }
+        return value;
+    }
+
+    TA_MoveSoundId move(int delta) override {
+        enabled = !enabled;
+        TA::resmgr::setModEnabled(modName, enabled);
+        return TA_MOVE_SOUND_SWITCH;
+    }
+
+private:
+    std::string modName;
+    bool enabled, bootEnabled;
+    std::string on = getOptionString("on");
+    std::string off = getOptionString("off");
+    std::string restart = getOptionString("mods_restart");
+};
+
 void TA_OptionsSection::load() {
     font.loadFont("fonts/pause_menu.toml");
 
@@ -376,6 +404,15 @@ void TA_OptionsSection::load() {
     options[2].push_back(std::make_unique<TA_VolumeOption>(getOptionString("sfx"), "sfx_volume"));
 
     options[3].push_back(std::make_unique<TA_SonicBombOption>());
+
+    std::vector<TA::resmgr::ModInfo> mods = TA::resmgr::getModList();
+    if(!mods.empty()) {
+        groups.push_back(getOptionString("mods"));
+        options.resize(groups.size());
+        for(const TA::resmgr::ModInfo& mod : mods) {
+            options.back().push_back(std::make_unique<TA_ModToggleOption>(mod.name, mod.enabled));
+        }
+    }
 
     switchSound.load("sound/switch.ogg", TA_SOUND_CHANNEL_SFX1);
     selectSound.load("sound/select_item.ogg", TA_SOUND_CHANNEL_SFX2);
@@ -493,7 +530,8 @@ void TA_OptionsSection::updateOptionSelector() {
         }
     }
 
-    for(int pos = 0; pos < static_cast<int>(options[group].size()); pos++) {
+    int touchCount = std::min(static_cast<int>(options[group].size()), static_cast<int>(buttons.size()));
+    for(int pos = 0; pos < touchCount; pos++) {
         if(options[group][pos]->hasNegativeMove()) {
             if(buttons[pos][0].isReleased()) {
                 option = pos;
@@ -574,7 +612,7 @@ void TA_OptionsSection::drawOptionList() {
         std::string right = options[group][pos]->getValue();
         int offset = font.getTextWidth(right, {-1, 0});
 
-        if(touchscreen) {
+        if(touchscreen && pos < static_cast<int>(buttons.size())) {
             if(options[group][pos]->hasNegativeMove()) {
                 if(buttons[pos][0].isPressed()) {
                     drawHighlight(lx - 28, y - 3, 25);
