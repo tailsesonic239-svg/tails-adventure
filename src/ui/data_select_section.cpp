@@ -392,7 +392,7 @@ void TA_DataSelectSection::drawCharacterSelect() {
 
     std::string title = "CHOOSE CHARACTER";
     splashFont.drawTextCentered(frameTop + 6, title, TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(8, 8), "< back");
 
     characterSelectTailsSprite.setAnimation("idle");
     characterSelectSonicSprite.setAnimation("idle");
@@ -407,8 +407,8 @@ void TA_DataSelectSection::drawCharacterSelect() {
     characterSelectTailsSprite.draw();
     characterSelectSonicSprite.draw();
 
-    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> TAILS <" : "  TAILS  ";
-    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> SONIC <" : "  SONIC  ";
+    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> tails <" : "  tails  ";
+    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> sonic <" : "  sonic  ";
     font.drawText(TA_Point(centerX - spriteOffset - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 4), tailsLabel);
     font.drawText(TA_Point(centerX + spriteOffset - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 4), sonicLabel);
 }
@@ -432,10 +432,13 @@ void TA_DataSelectSection::drawModsBrowse() {
     float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
 
     splashFont.drawTextCentered(frameTop + 6, "MODS", TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(8, 8), "< back");
 
     if(modsBrowseList.empty()) {
-        font.drawText(TA_Point(centerX - 40, centerY), "sem mods instalados");
+        std::string line1 = "sem mods";
+        std::string line2 = "instalados";
+        font.drawText(TA_Point(centerX - font.getTextWidth(line1) / 2, centerY - 6), line1);
+        font.drawText(TA_Point(centerX - font.getTextWidth(line2) / 2, centerY + 4), line2);
         return;
     }
 
@@ -443,7 +446,7 @@ void TA_DataSelectSection::drawModsBrowse() {
     for(int i = 0; i < static_cast<int>(modsBrowseList.size()) && i < 8; i++) {
         const TA::resmgr::ModInfo& mod = modsBrowseList[i];
         std::string marker = (i == modsBrowseSelection) ? "> " : "  ";
-        std::string state = mod.enabled ? "[ON] " : "[OFF] ";
+        std::string state = mod.enabled ? "[on] " : "[off] ";
         std::string icon = mod.hasIcon ? " (icon)" : "";
         font.drawText(TA_Point(centerX - 60, listY + i * 10), marker + state + mod.name + icon);
     }
@@ -475,10 +478,10 @@ void TA_DataSelectSection::drawMultiplayerBrowse() {
     float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
 
     splashFont.drawTextCentered(frameTop + 6, "MULTIPLAYER", TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(8, 8), "< back");
     font.drawText(TA_Point(centerX - 70, frameTop + 16), "config: user/multiplayer.toml");
 
-    const char* rows[3] = {"HOSPEDAR", "CONECTAR", "DESCONECTAR"};
+    const char* rows[3] = {"hospedar", "conectar", "desconectar"};
     float listY = frameTop + 28;
     for(int i = 0; i < 3; i++) {
         std::string marker = (i == multiplayerSelection) ? "> " : "  ";
