@@ -1,9 +1,37 @@
 #include "network.h"
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include "tools.h"
 
 namespace network {
+
+// Tabela fixa nome<->codigo pras animacoes do personagem (Tails/Sonic), pra
+// nao precisar mandar a string inteira em todo pacote de rede. Se um mod ou
+// uma animacao nova nao estiver aqui, cai em "idle" (codigo 0) por seguranca.
+static const std::array<std::string, 35> animationTable{
+    "idle", "walk", "run", "push", "climb", "climb_high", "crouch", "look_up", "jump_up", "jump_down", "fall",
+    "hurt", "death", "spindash", "teleport", "hammer", "throw", "throw_air", "throw_crouch", "throw_helitail",
+    "helitail", "helitail_full", "helitail_tired", "helmet", "helmet_init", "helmet_quit", "raise", "release",
+    "unpack", "control_remote_robot", "remote_robot_idle", "remote_robot_walk", "remote_robot_raise",
+    "remote_robot_fly_init", "remote_robot_fly_loop",
+};
+
+uint8_t encodeAnimation(const std::string& name) {
+    for(size_t i = 0; i < animationTable.size(); i++) {
+        if(animationTable[i] == name) {
+            return static_cast<uint8_t>(i);
+        }
+    }
+    return 0; // "idle"
+}
+
+std::string decodeAnimation(uint8_t code) {
+    if(code < animationTable.size()) {
+        return animationTable[code];
+    }
+    return "idle";
+}
 
 enum class PacketType : uint8_t { ASSIGN_ID = 0, PLAYER_STATE = 1, PASSWORD = 2, REJECTED = 3 };
 
@@ -308,3 +336,4 @@ NetworkManager& instance() {
 }
 
 } // namespace network
+
