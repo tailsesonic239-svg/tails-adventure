@@ -7,6 +7,7 @@
 #include "geometry.h"
 #include "hud.h"
 #include "links.h"
+#include "network.h"
 #include "object_set.h"
 #include "screen.h"
 #include "sea_fox.h"
@@ -28,6 +29,13 @@ private:
     bool isSeaFoxGround = false;
     bool isSeaFoxFly = false;
     float timer = 0;
+
+    // Jogadores remotos (multiplayer) - visual apenas, sem fisica propria;
+    // posicao/animacao vem direto do que a rede recebeu.
+    std::array<TA_Sprite, network::MAX_PLAYERS> remoteSprites;
+    std::array<int, network::MAX_PLAYERS> remoteSpriteCharacter{-1, -1, -1, -1};
+    void updateNetwork();
+    void drawRemotePlayers();
 
 public:
     void init() override;

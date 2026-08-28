@@ -29,6 +29,9 @@ private:
     void drawCharacterSelect();
     void updateModsBrowse();
     void drawModsBrowse();
+    void updateMultiplayerBrowse();
+    void drawMultiplayerBrowse();
+    void activateMultiplayerAction(int index);
     bool updateTouchscreenSelection();
     int getSavePercent(int save);
     std::string getSaveTime(int save);
@@ -72,6 +75,14 @@ private:
     std::vector<TA::resmgr::ModInfo> modsBrowseList;
     TA_OnscreenButton modsBrowseBackButton;
     std::array<TA_OnscreenButton, 8> modsBrowseRowButtons;
+
+    // Tela de hospedar/conectar multiplayer. IP/porta/senha vem de um
+    // arquivo que o jogador edita por fora (user/multiplayer.toml), ja
+    // que o jogo ainda nao tem teclado na tela pra digitar isso.
+    bool browsingMultiplayer = false;
+    int multiplayerSelection = 0;
+    TA_OnscreenButton multiplayerBackButton;
+    std::array<TA_OnscreenButton, 3> multiplayerRowButtons;
 };
 
 #endif // DATA_SELECT_SECTION_H

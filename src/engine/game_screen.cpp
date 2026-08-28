@@ -65,6 +65,7 @@ TA_ScreenState TA_GameScreen::update() {
 
     controller.update();
     hud.update();
+    updateNetwork();
 
     if(!hud.isPaused()) {
         if(!isSeaFox) {
@@ -107,6 +108,7 @@ TA_ScreenState TA_GameScreen::update() {
     }
 
     objectSet.draw(2);
+    drawRemotePlayers();
     hud.draw();
     controller.draw();
 
@@ -123,6 +125,49 @@ TA_ScreenState TA_GameScreen::update() {
         return objectSet.getTransition();
     }
     return TA_SCREENSTATE_CURRENT;
+}
+
+void TA_GameScreen::updateNetwork() {
+    if(!network::instance().isActive()) {
+        return;
+    }
+    network::instance().update();
+
+    if(!isSeaFox && network::instance().getStatus() == network::ConnectionStatus::CONNECTED) {
+        network::PlayerState state;
+        state.x = character.getPosition().x;
+        state.y = character.getPosition().y;
+        state.facing = character.getFlip() ? 1 : 0;
+        state.characterId = static_cast<uint8_t>(character.getCharacter());
+        state.animation = network::encodeAnimation(character.getAnimationName());
+        network::instance().sendLocalState(state);
+    }
+}
+
+void TA_GameScreen::drawRemotePlayers() {
+    if(!network::instance().isActive()) {
+        return;
+    }
+
+    const auto& states = network::instance().getRemoteStates();
+    int localId = network::instance().getLocalPlayerId();
+
+    for(int i = 0; i < network::MAX_PLAYERS; i++) {
+        if(i == localId || !states[i].valid) {
+            continue;
+        }
+
+        if(remoteSpriteCharacter[i] != states[i].characterId) {
+            remoteSprites[i].loadFromToml(states[i].characterId == 1 ? "sonic/sonic.toml" : "tails/tails.toml");
+            remoteSprites[i].setCamera(&camera);
+            remoteSpriteCharacter[i] = states[i].characterId;
+        }
+
+        remoteSprites[i].setPosition(states[i].x, states[i].y);
+        remoteSprites[i].setFlip(states[i].facing != 0);
+        remoteSprites[i].setAnimation(network::decodeAnimation(states[i].animation));
+        remoteSprites[i].draw();
+    }
 }
 
 void TA_GameScreen::quit() {
