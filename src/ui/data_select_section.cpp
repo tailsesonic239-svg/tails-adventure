@@ -518,7 +518,7 @@ void TA_DataSelectSection::drawModsEntry() {
     entrySprite.draw();
 
     font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
-    std::string label = "MODS";
+    std::string label = "mods";
     font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label) / 2, 30), label);
 }
 
@@ -530,8 +530,8 @@ void TA_DataSelectSection::drawMultiplayerEntry() {
     entrySprite.draw();
 
     font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
-    std::string label1 = "MULTI";
-    std::string label2 = "PLAYER";
+    std::string label1 = "multi";
+    std::string label2 = "player";
     font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label1) / 2, 26), label1);
     font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label2) / 2, 36), label2);
 }

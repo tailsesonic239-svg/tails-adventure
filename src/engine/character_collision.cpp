@@ -119,7 +119,7 @@ void TA_Character::updateCollisions() {
     }
 
     wall = bool(flags & TA_WALL_COLLISION);
-    if(wall && (hurt || !ground)) {
+    if(wall && (hurt || !ground) && !sonicDashing) {
         velocity.x = 0;
     }
 
@@ -351,3 +351,4 @@ void TA_Character::updateWaterCollision() {
     }
     water = newWater;
 }
+
