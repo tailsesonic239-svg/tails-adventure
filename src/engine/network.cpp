@@ -1,6 +1,7 @@
 #include "network.h"
 #include <cstdio>
 #include <cstring>
+#include "tools.h"
 
 namespace network {
 

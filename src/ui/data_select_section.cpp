@@ -2,6 +2,9 @@
 #include <bit>
 #include <numeric>
 #include "character.h"
+#include "error.h"
+#include "filesystem.h"
+#include "network.h"
 #include "resource_manager.h"
 #include "save.h"
 #include "tools.h"
@@ -37,6 +40,24 @@ void TA_DataSelectSection::load() {
     characterSelectSonicButton.setRectangle(
         TA_Point((float)TA::screenWidth / 2, 24), TA_Point((float)TA::screenWidth, (float)TA::screenHeight));
 
+    // Layout dos modais (Mods / Multiplayer) — mesma faixa de "voltar" no
+    // topo, e uma linha tocável por item da lista logo abaixo do título.
+    float frameTop = (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2;
+    float modsListY = frameTop + 22;
+    float multiplayerListY = frameTop + 28;
+
+    modsBrowseBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
+    for(int i = 0; i < static_cast<int>(modsBrowseRowButtons.size()); i++) {
+        float y = modsListY + i * 10;
+        modsBrowseRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 10));
+    }
+
+    multiplayerBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
+    for(int i = 0; i < static_cast<int>(multiplayerRowButtons.size()); i++) {
+        float y = multiplayerListY + i * 12;
+        multiplayerRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 12));
+    }
+
     splashSequence = generateSplashSequence();
 }
 
@@ -56,6 +77,11 @@ TA_MainMenuState TA_DataSelectSection::update() {
 
     if(browsingMods) {
         updateModsBrowse();
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
+    if(browsingMultiplayer) {
+        updateMultiplayerBrowse();
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
@@ -109,25 +135,16 @@ void TA_DataSelectSection::updateCharacterSelect() {
 }
 
 void TA_DataSelectSection::updateModsBrowse() {
-    float centerY = (float)TA::screenHeight / 2;
-    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
-    float listY = frameTop + 22;
-
     if(controller->isTouchscreen()) {
-        modsBrowseBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
         modsBrowseBackButton.update();
         if(modsBrowseBackButton.isReleased()) {
             browsingMods = false;
             return;
         }
 
-        int count = std::min(static_cast<int>(modsBrowseList.size()), static_cast<int>(modsBrowseRowButtons.size()));
-        for(int i = 0; i < count; i++) {
-            modsBrowseRowButtons[i].setRectangle(
-                TA_Point(0, listY + i * 10 - 2), TA_Point((float)TA::screenWidth, listY + i * 10 + 8));
+        for(int i = 0; i < static_cast<int>(modsBrowseRowButtons.size()); i++) {
             modsBrowseRowButtons[i].update();
-
-            if(modsBrowseRowButtons[i].isReleased()) {
+            if(i < static_cast<int>(modsBrowseList.size()) && modsBrowseRowButtons[i].isReleased()) {
                 modsBrowseSelection = i;
                 TA::resmgr::ModInfo& mod = modsBrowseList[i];
                 mod.enabled = !mod.enabled;
@@ -161,6 +178,81 @@ void TA_DataSelectSection::updateModsBrowse() {
     }
 }
 
+void TA_DataSelectSection::updateMultiplayerBrowse() {
+    if(controller->isTouchscreen()) {
+        multiplayerBackButton.update();
+        if(multiplayerBackButton.isReleased()) {
+            browsingMultiplayer = false;
+            return;
+        }
+
+        for(int i = 0; i < static_cast<int>(multiplayerRowButtons.size()); i++) {
+            multiplayerRowButtons[i].update();
+            if(multiplayerRowButtons[i].isReleased()) {
+                multiplayerSelection = i;
+                activateMultiplayerAction(i);
+                selectSound.play();
+            }
+        }
+        return;
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_B)) {
+        browsingMultiplayer = false;
+        return;
+    }
+
+    if(controller->isJustChangedDirection() &&
+        (controller->getDirection() == TA_DIRECTION_UP || controller->getDirection() == TA_DIRECTION_DOWN)) {
+        int delta = (controller->getDirection() == TA_DIRECTION_DOWN) ? 1 : -1;
+        multiplayerSelection = (multiplayerSelection + delta + 3) % 3;
+        switchSound.play();
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_A)) {
+        activateMultiplayerAction(multiplayerSelection);
+        selectSound.play();
+    }
+}
+
+void TA_DataSelectSection::activateMultiplayerAction(int index) {
+    std::filesystem::path dataRoot = TA::resmgr::getDataRoot();
+    if(dataRoot.empty()) {
+        return;
+    }
+    std::filesystem::path configPath = dataRoot / "user" / "multiplayer.toml";
+
+    std::string ip = "127.0.0.1";
+    uint16_t port = network::DEFAULT_PORT;
+    std::string password;
+    bool friendlyFire = false;
+
+    if(std::filesystem::is_regular_file(configPath)) {
+        try {
+            toml::value config = toml::parse_str(TA::filesystem::readFile(configPath));
+            ip = toml::find_or<std::string>(config, "ip", ip);
+            port = static_cast<uint16_t>(toml::find_or<int>(config, "port", static_cast<int>(port)));
+            password = toml::find_or<std::string>(config, "password", "");
+            friendlyFire = toml::find_or<bool>(config, "friendly_fire", false);
+        } catch(std::exception& e) {
+            TA::printWarning("failed to read multiplayer.toml: %s", e.what());
+        }
+    }
+
+    if(index == 0) {
+        // Hospedar
+        if(network::instance().startHost(port, password)) {
+            network::instance().setFriendlyFire(friendlyFire);
+        }
+    } else if(index == 1) {
+        // Conectar
+        network::instance().connect(ip, port, password);
+    } else if(index == 2) {
+        // Desconectar
+        network::instance().disconnect();
+    }
+}
+
 TA_MainMenuState TA_DataSelectSection::processSelection() {
     if(selection == 0) {
         selectSound.play();
@@ -177,7 +269,8 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
 
     if(selection == 2) {
         selectSound.play();
-        // TODO: trocar por TA_MAIN_MENU_MULTIPLAYER quando a tela existir
+        multiplayerSelection = 0;
+        browsingMultiplayer = true;
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
@@ -274,6 +367,7 @@ void TA_DataSelectSection::draw() {
     drawSelector();
     drawCharacterSelect();
     drawModsBrowse();
+    drawMultiplayerBrowse();
 }
 
 void TA_DataSelectSection::drawCharacterSelect() {
@@ -298,7 +392,7 @@ void TA_DataSelectSection::drawCharacterSelect() {
 
     std::string title = "CHOOSE CHARACTER";
     splashFont.drawTextCentered(frameTop + 6, title, TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< back");
+    font.drawText(TA_Point(8, 8), "< BACK");
 
     characterSelectTailsSprite.setAnimation("idle");
     characterSelectSonicSprite.setAnimation("idle");
@@ -313,8 +407,8 @@ void TA_DataSelectSection::drawCharacterSelect() {
     characterSelectTailsSprite.draw();
     characterSelectSonicSprite.draw();
 
-    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> tails <" : "  tails  ";
-    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> sonic <" : "  sonic  ";
+    std::string tailsLabel = (pendingCharacter == TA_CHARACTER_TAILS) ? "> TAILS <" : "  TAILS  ";
+    std::string sonicLabel = (pendingCharacter == TA_CHARACTER_SONIC) ? "> SONIC <" : "  SONIC  ";
     font.drawText(TA_Point(centerX - spriteOffset - font.getTextWidth(tailsLabel) / 2, spriteY + characterSelectTailsSprite.getHeight() + 4), tailsLabel);
     font.drawText(TA_Point(centerX + spriteOffset - font.getTextWidth(sonicLabel) / 2, spriteY + characterSelectSonicSprite.getHeight() + 4), sonicLabel);
 }
@@ -338,21 +432,18 @@ void TA_DataSelectSection::drawModsBrowse() {
     float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
 
     splashFont.drawTextCentered(frameTop + 6, "MODS", TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< back");
+    font.drawText(TA_Point(8, 8), "< BACK");
 
     if(modsBrowseList.empty()) {
-        std::string line1 = "sem mods";
-        std::string line2 = "instalados";
-        font.drawText(TA_Point(centerX - font.getTextWidth(line1) / 2, centerY - 6), line1);
-        font.drawText(TA_Point(centerX - font.getTextWidth(line2) / 2, centerY + 4), line2);
+        font.drawText(TA_Point(centerX - 40, centerY), "sem mods instalados");
         return;
     }
 
     float listY = frameTop + 22;
-    for(int i = 0; i < static_cast<int>(modsBrowseList.size()); i++) {
+    for(int i = 0; i < static_cast<int>(modsBrowseList.size()) && i < 8; i++) {
         const TA::resmgr::ModInfo& mod = modsBrowseList[i];
         std::string marker = (i == modsBrowseSelection) ? "> " : "  ";
-        std::string state = mod.enabled ? "[on] " : "[off] ";
+        std::string state = mod.enabled ? "[ON] " : "[OFF] ";
         std::string icon = mod.hasIcon ? " (icon)" : "";
         font.drawText(TA_Point(centerX - 60, listY + i * 10), marker + state + mod.name + icon);
     }
@@ -360,8 +451,53 @@ void TA_DataSelectSection::drawModsBrowse() {
     if(modsBrowseSelection < static_cast<int>(modsBrowseList.size())) {
         const std::string& desc = modsBrowseList[modsBrowseSelection].description;
         if(!desc.empty()) {
-            font.drawText(TA_Point(centerX - 60, listY + modsBrowseList.size() * 10 + 6), desc);
+            font.drawText(TA_Point(centerX - 60, listY + std::min<size_t>(modsBrowseList.size(), 8) * 10 + 6), desc);
         }
+    }
+}
+
+void TA_DataSelectSection::drawMultiplayerBrowse() {
+    if(!browsingMultiplayer) {
+        return;
+    }
+
+    font.setAlpha(255);
+    splashFont.setAlpha(255);
+    characterSelectFrameSprite.setAlpha(255);
+
+    characterSelectFrameSprite.setPosition(
+        (float)TA::screenWidth / 2 - characterSelectFrameSprite.getWidth() / 2,
+        (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2);
+    characterSelectFrameSprite.draw();
+
+    float centerX = (float)TA::screenWidth / 2;
+    float centerY = (float)TA::screenHeight / 2;
+    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
+
+    splashFont.drawTextCentered(frameTop + 6, "MULTIPLAYER", TA_Point(-1, 0));
+    font.drawText(TA_Point(8, 8), "< BACK");
+    font.drawText(TA_Point(centerX - 70, frameTop + 16), "config: user/multiplayer.toml");
+
+    const char* rows[3] = {"HOSPEDAR", "CONECTAR", "DESCONECTAR"};
+    float listY = frameTop + 28;
+    for(int i = 0; i < 3; i++) {
+        std::string marker = (i == multiplayerSelection) ? "> " : "  ";
+        font.drawText(TA_Point(centerX - 70, listY + i * 12), marker + rows[i]);
+    }
+
+    std::string status;
+    switch(network::instance().getStatus()) {
+        case network::ConnectionStatus::DISCONNECTED: status = "status: desconectado"; break;
+        case network::ConnectionStatus::CONNECTING: status = "status: conectando..."; break;
+        case network::ConnectionStatus::CONNECTED: status = "status: conectado"; break;
+        case network::ConnectionStatus::FAILED: status = "status: falhou (" + network::instance().getLastError() + ")"; break;
+    }
+    font.drawText(TA_Point(centerX - 70, listY + 42), status);
+
+    if(network::instance().isActive()) {
+        std::string info = "jogadores: " + std::to_string(network::instance().getConnectedPlayerCount() + 1) + "/" +
+            std::to_string(network::MAX_PLAYERS);
+        font.drawText(TA_Point(centerX - 70, listY + 52), info);
     }
 }
 
