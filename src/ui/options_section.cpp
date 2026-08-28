@@ -612,6 +612,17 @@ void TA_OptionsSection::drawOptionList() {
         std::string right = options[group][pos]->getValue();
         int offset = font.getTextWidth(right, {-1, 0});
 
+        // Nomes de mod sao digitados livremente pelo usuario e podem ser
+        // compridos demais, invadindo o espaco do valor a direita (ex: "on
+        // (restart to apply)"). Trunca com ".." se nao couber.
+        float maxLeftWidth = (rx - offset) - lx - 6;
+        if(font.getTextWidth(left, {-1, 0}) > maxLeftWidth) {
+            while(!left.empty() && font.getTextWidth(left + "..", {-1, 0}) > maxLeftWidth) {
+                left.pop_back();
+            }
+            left += "..";
+        }
+
         if(touchscreen && pos < static_cast<int>(buttons.size())) {
             if(options[group][pos]->hasNegativeMove()) {
                 if(buttons[pos][0].isPressed()) {
@@ -681,3 +692,4 @@ void TA_OptionsSection::updateAlpha() {
 
     font.setAlpha(alpha);
 }
+

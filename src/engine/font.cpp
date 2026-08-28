@@ -64,6 +64,13 @@ void TA_Font::drawText(TA_Point position, std::string text, TA_Point offset) {
     TA_Point currentPosition = position;
     for(int pos = 0; pos < static_cast<int>(text.length());) {
         std::string symbol = getUtf8Rune(text, pos);
+        // A fonte so tem o alfabeto minusculo desenhado direito (com cara de
+        // caixa alta na tela); mod names e outros textos digitados pelo
+        // usuario podem vir em qualquer caixa, entao normaliza aqui pra
+        // nunca cair nos glyphs quebrados/inexistentes de A-Z.
+        if(symbol.size() == 1 && symbol[0] >= 'A' && symbol[0] <= 'Z') {
+            symbol[0] = static_cast<char>(symbol[0] - 'A' + 'a');
+        }
         if(mapping.count(symbol)) {
             setPosition(currentPosition);
             setFrame(mapping[symbol]);
@@ -97,3 +104,4 @@ float TA_Font::getTextWidth(std::string text, TA_Point offset) {
     }
     return maxWidth;
 }
+
