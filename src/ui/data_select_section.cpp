@@ -27,7 +27,7 @@ void TA_DataSelectSection::load() {
     selectSound.load("sound/select_item.ogg", TA_SOUND_CHANNEL_SFX1);
     loadSaveSound.load("sound/load_save.ogg", TA_SOUND_CHANNEL_SFX1);
 
-    for(int pos = 0; pos < 11; pos++) {
+    for(int pos = 0; pos < 12; pos++) {
         TA_Point topLeft{menuStart + menuOffset * pos, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
         TA_Point bottomRight = topLeft + TA_Point(48, (pos == 0 ? 48 : 72));
         buttons[pos].setRectangle(topLeft, bottomRight);
@@ -58,6 +58,12 @@ void TA_DataSelectSection::load() {
         multiplayerRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 12));
     }
 
+    deleteSaveBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
+    for(int i = 0; i < static_cast<int>(deleteSaveRowButtons.size()); i++) {
+        float y = modsListY + i * 10;
+        deleteSaveRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 10));
+    }
+
     splashSequence = generateSplashSequence();
 }
 
@@ -82,6 +88,11 @@ TA_MainMenuState TA_DataSelectSection::update() {
 
     if(browsingMultiplayer) {
         updateMultiplayerBrowse();
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
+    if(deletingSave) {
+        updateDeleteSave();
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
@@ -175,6 +186,62 @@ void TA_DataSelectSection::updateModsBrowse() {
         mod.enabled = !mod.enabled;
         TA::resmgr::setModEnabled(mod.name, mod.enabled);
         selectSound.play();
+    }
+}
+
+void TA_DataSelectSection::updateDeleteSave() {
+    auto tryDelete = [this](int i) {
+        if(!TA::save::saveExists(i) || i == createdSave) {
+            return;
+        }
+        if(deleteSavePendingConfirm != i) {
+            // primeiro toque so "arma" a confirmacao nesse save
+            deleteSavePendingConfirm = i;
+            switchSound.play();
+            return;
+        }
+        // segundo toque no MESMO save de fato apaga
+        TA::save::deleteSave(i);
+        deleteSavePendingConfirm = -1;
+        selectSound.play();
+    };
+
+    if(controller->isTouchscreen()) {
+        deleteSaveBackButton.update();
+        if(deleteSaveBackButton.isReleased()) {
+            deletingSave = false;
+            deleteSavePendingConfirm = -1;
+            return;
+        }
+
+        for(int i = 0; i < static_cast<int>(deleteSaveRowButtons.size()); i++) {
+            deleteSaveRowButtons[i].update();
+            if(deleteSaveRowButtons[i].isReleased()) {
+                deleteSaveSelection = i;
+                tryDelete(i);
+            }
+        }
+        return;
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_B)) {
+        deletingSave = false;
+        deleteSavePendingConfirm = -1;
+        return;
+    }
+
+    if(controller->isJustChangedDirection() &&
+        (controller->getDirection() == TA_DIRECTION_UP || controller->getDirection() == TA_DIRECTION_DOWN)) {
+        int delta = (controller->getDirection() == TA_DIRECTION_DOWN) ? 1 : -1;
+        deleteSaveSelection = (deleteSaveSelection + delta + 8) % 8;
+        if(deleteSavePendingConfirm != deleteSaveSelection) {
+            deleteSavePendingConfirm = -1;
+        }
+        switchSound.play();
+    }
+
+    if(controller->isJustPressed(TA_BUTTON_A)) {
+        tryDelete(deleteSaveSelection);
     }
 }
 
@@ -274,6 +341,13 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
+    if(selection == 11) {
+        selectSound.play();
+        deleteSavePendingConfirm = -1;
+        deletingSave = true;
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
     selectSound.play();
     choosingCharacter = true;
     pendingSave = selection - 3;
@@ -313,14 +387,14 @@ void TA_DataSelectSection::updateScroll() {
 
     position += scrollVelocity;
     position = std::max(position, float(0));
-    position = std::min(position, menuStart + 11 * menuOffset - TA::screenWidth);
+    position = std::min(position, menuStart + 12 * menuOffset - TA::screenWidth);
 }
 
 void TA_DataSelectSection::updateSelection() {
     // menuStart + selection * menuOffset + 24 - need = TA::screenWidth / 2
     float need = menuStart + selection * menuOffset + 24 - (float)TA::screenWidth / 2;
     need = std::max(need, float(0));
-    need = std::min(need, menuStart + 11 * menuOffset - TA::screenWidth);
+    need = std::min(need, menuStart + 12 * menuOffset - TA::screenWidth);
 
     if(!TA::equal(position, need)) {
         if(position > need) {
@@ -334,7 +408,7 @@ void TA_DataSelectSection::updateSelection() {
             selection--;
             switchSound.play();
         }
-        if(selection + 1 < 11 && controller->getDirection() == TA_DIRECTION_RIGHT) {
+        if(selection + 1 < 12 && controller->getDirection() == TA_DIRECTION_RIGHT) {
             selection++;
             switchSound.play();
         }
@@ -342,7 +416,7 @@ void TA_DataSelectSection::updateSelection() {
 }
 
 bool TA_DataSelectSection::updateTouchscreenSelection() {
-    for(int pos = 0; pos < 11; pos++) {
+    for(int pos = 0; pos < 12; pos++) {
         buttons[pos].setPosition({-position, 0});
         buttons[pos].update();
 
@@ -362,12 +436,14 @@ void TA_DataSelectSection::draw() {
     drawModsEntry();
     drawMultiplayerEntry();
     drawSaveEntries();
+    drawDeleteSaveEntry();
     drawModCount();
     drawSplash();
     drawSelector();
     drawCharacterSelect();
     drawModsBrowse();
     drawMultiplayerBrowse();
+    drawDeleteSaveBrowse();
 }
 
 void TA_DataSelectSection::drawCharacterSelect() {
@@ -504,6 +580,45 @@ void TA_DataSelectSection::drawMultiplayerBrowse() {
     }
 }
 
+void TA_DataSelectSection::drawDeleteSaveBrowse() {
+    if(!deletingSave) {
+        return;
+    }
+
+    font.setAlpha(255);
+    splashFont.setAlpha(255);
+    characterSelectFrameSprite.setAlpha(255);
+
+    characterSelectFrameSprite.setPosition(
+        (float)TA::screenWidth / 2 - characterSelectFrameSprite.getWidth() / 2,
+        (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2);
+    characterSelectFrameSprite.draw();
+
+    float centerX = (float)TA::screenWidth / 2;
+    float centerY = (float)TA::screenHeight / 2;
+    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
+
+    splashFont.drawTextCentered(frameTop + 6, "DELETE SAVE", TA_Point(-1, 0));
+    font.drawText(TA_Point(8, 8), "< back");
+
+    float listY = frameTop + 22;
+    for(int i = 0; i < 8; i++) {
+        std::string marker = (i == deleteSaveSelection) ? "> " : "  ";
+        std::string label = "save " + std::to_string(i + 1);
+
+        std::string line;
+        if(!TA::save::saveExists(i) || i == createdSave) {
+            line = marker + label + " (vazio)";
+        } else if(deleteSavePendingConfirm == i) {
+            line = marker + label + " - toca de novo!";
+        } else {
+            line = marker + label + " - " + std::to_string(getSavePercent(i)) + "% " + getSaveTime(i);
+        }
+
+        font.drawText(TA_Point(centerX - 60, listY + i * 10), line);
+    }
+}
+
 void TA_DataSelectSection::drawCustomEntries() {
     optionsSprite.setAlpha(alpha);
     optionsSprite.setPosition(menuStart - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2);
@@ -570,6 +685,21 @@ void TA_DataSelectSection::drawSaveEntries() {
     }
 }
 
+void TA_DataSelectSection::drawDeleteSaveEntry() {
+    TA_Point entryPosition{
+        menuStart + 11 * menuOffset - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2};
+
+    entrySprite.setAlpha(alpha);
+    entrySprite.setPosition(entryPosition);
+    entrySprite.draw();
+
+    font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
+    std::string label1 = "delete";
+    std::string label2 = "save";
+    font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label1) / 2, 26), label1);
+    font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label2) / 2, 36), label2);
+}
+
 void TA_DataSelectSection::drawModCount() {
     int total = TA::resmgr::getTotalMods();
     int loaded = TA::resmgr::getLoadedMods();
@@ -600,7 +730,7 @@ void TA_DataSelectSection::drawSelector() {
     if(controller->isTouchscreen() && !locked) {
         selectorRedSprite.setAlpha(255);
         selectorWhiteSprite.setAlpha(0);
-        for(int pos = 0; pos < 11; pos++) {
+        for(int pos = 0; pos < 12; pos++) {
             if(buttons[pos].isPressed()) {
                 selectorPosition = pos;
             }

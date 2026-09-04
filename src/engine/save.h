@@ -14,6 +14,7 @@ namespace TA {
         void setSaveParameter(std::string name, long long value, std::string saveName = "");
         void createSave(std::string saveName);
         void repairSave(std::string saveName);
+        void deleteSave(int save);
         bool saveExists(int save);
     }
 }

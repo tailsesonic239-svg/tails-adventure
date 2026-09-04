@@ -64,6 +64,104 @@ namespace {
         return 1;
     }
 
+    // ta.get_player_vx() / ta.get_player_vy() -> number, ou nil sem personagem ativo
+    int lua_ta_get_player_vx(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushnumber(L, TA::activeCharacter->getVelocity().x);
+        return 1;
+    }
+
+    int lua_ta_get_player_vy(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushnumber(L, TA::activeCharacter->getVelocity().y);
+        return 1;
+    }
+
+    // ta.set_player_position(x, y) -> teleporta o personagem ativo (sem
+    // efeito se nao houver personagem ativo no momento)
+    int lua_ta_set_player_position(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            return 0;
+        }
+        double x = luaL_checknumber(L, 1);
+        double y = luaL_checknumber(L, 2);
+        TA::activeCharacter->setCharacterPosition(TA_Point(static_cast<float>(x), static_cast<float>(y)));
+        return 0;
+    }
+
+    // ta.is_on_ground() / ta.is_flying() / ta.is_in_water() /
+    // ta.is_invincible() / ta.is_attacking() -> bool, ou nil sem personagem ativo
+    int lua_ta_is_on_ground(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushboolean(L, TA::activeCharacter->isOnGround());
+        return 1;
+    }
+
+    int lua_ta_is_flying(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushboolean(L, TA::activeCharacter->isFlying());
+        return 1;
+    }
+
+    int lua_ta_is_in_water(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushboolean(L, TA::activeCharacter->isInWater());
+        return 1;
+    }
+
+    int lua_ta_is_invincible(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushboolean(L, TA::activeCharacter->isInvincible());
+        return 1;
+    }
+
+    int lua_ta_is_attacking(lua_State* L) {
+        if(TA::activeCharacter == nullptr) {
+            lua_pushnil(L);
+            return 1;
+        }
+        lua_pushboolean(L, TA::activeCharacter->isAttacking());
+        return 1;
+    }
+
+    // ta.hurt_player() -> aplica dano/hit-stun no personagem ativo, igual
+    // encostar num inimigo. Sem efeito se nao houver personagem ativo.
+    int lua_ta_hurt_player(lua_State* L) {
+        if(TA::activeCharacter != nullptr) {
+            TA::activeCharacter->setHurt();
+        }
+        return 0;
+    }
+
+    // ta.get_screen_width() / ta.get_screen_height() -> number
+    int lua_ta_get_screen_width(lua_State* L) {
+        lua_pushnumber(L, TA::screenWidth);
+        return 1;
+    }
+
+    int lua_ta_get_screen_height(lua_State* L) {
+        lua_pushnumber(L, TA::screenHeight);
+        return 1;
+    }
+
     void registerApi(lua_State* L, const std::string& modName) {
         lua_newtable(L);
 
@@ -77,8 +175,41 @@ namespace {
         lua_pushcfunction(L, lua_ta_get_player_y);
         lua_setfield(L, -2, "get_player_y");
 
+        lua_pushcfunction(L, lua_ta_get_player_vx);
+        lua_setfield(L, -2, "get_player_vx");
+
+        lua_pushcfunction(L, lua_ta_get_player_vy);
+        lua_setfield(L, -2, "get_player_vy");
+
+        lua_pushcfunction(L, lua_ta_set_player_position);
+        lua_setfield(L, -2, "set_player_position");
+
         lua_pushcfunction(L, lua_ta_get_character);
         lua_setfield(L, -2, "get_character");
+
+        lua_pushcfunction(L, lua_ta_is_on_ground);
+        lua_setfield(L, -2, "is_on_ground");
+
+        lua_pushcfunction(L, lua_ta_is_flying);
+        lua_setfield(L, -2, "is_flying");
+
+        lua_pushcfunction(L, lua_ta_is_in_water);
+        lua_setfield(L, -2, "is_in_water");
+
+        lua_pushcfunction(L, lua_ta_is_invincible);
+        lua_setfield(L, -2, "is_invincible");
+
+        lua_pushcfunction(L, lua_ta_is_attacking);
+        lua_setfield(L, -2, "is_attacking");
+
+        lua_pushcfunction(L, lua_ta_hurt_player);
+        lua_setfield(L, -2, "hurt_player");
+
+        lua_pushcfunction(L, lua_ta_get_screen_width);
+        lua_setfield(L, -2, "get_screen_width");
+
+        lua_pushcfunction(L, lua_ta_get_screen_height);
+        lua_setfield(L, -2, "get_screen_height");
 
         lua_setglobal(L, "ta");
     }

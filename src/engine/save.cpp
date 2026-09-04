@@ -154,3 +154,18 @@ bool TA::save::saveExists(int save) {
     std::string saveName = "save_" + std::to_string(save);
     return saveMap.count(saveName + "/item_mask");
 }
+
+void TA::save::deleteSave(int save) {
+    std::string prefix = "save_" + std::to_string(save) + "/";
+    for(auto it = saveMap.begin(); it != saveMap.end();) {
+        if(it->first.starts_with(prefix)) {
+            it = saveMap.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    if(currentSave == "save_" + std::to_string(save)) {
+        currentSave = "";
+    }
+    writeToFile();
+}

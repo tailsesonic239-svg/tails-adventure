@@ -32,6 +32,8 @@ private:
     void updateMultiplayerBrowse();
     void drawMultiplayerBrowse();
     void activateMultiplayerAction(int index);
+    void updateDeleteSave();
+    void drawDeleteSaveBrowse();
     bool updateTouchscreenSelection();
     int getSavePercent(int save);
     std::string getSaveTime(int save);
@@ -41,6 +43,7 @@ private:
     void drawMultiplayerEntry();
     void drawModsEntry();
     void drawSaveEntries();
+    void drawDeleteSaveEntry();
     void drawModCount();
     void drawSplash();
     void drawSelector();
@@ -57,7 +60,7 @@ private:
     std::vector<std::string> splashSequence;
     float splashTimer = 0;
 
-    std::array<TA_OnscreenButton, 11> buttons;
+    std::array<TA_OnscreenButton, 12> buttons;
     TA_OnscreenButton characterSelectTailsButton, characterSelectSonicButton, characterSelectBackButton;
     float position = 0, scrollVelocity = 0;
     int selection = 3, createdSave = -1, alpha = 255;
@@ -83,6 +86,15 @@ private:
     int multiplayerSelection = 0;
     TA_OnscreenButton multiplayerBackButton;
     std::array<TA_OnscreenButton, 3> multiplayerRowButtons;
+
+    // Tela de deletar save. Fica no ultimo slot do menu (depois dos 8
+    // saves). Precisa tocar 2x no mesmo save pra confirmar, pra nao
+    // apagar por acidente.
+    bool deletingSave = false;
+    int deleteSaveSelection = 0;
+    int deleteSavePendingConfirm = -1;
+    TA_OnscreenButton deleteSaveBackButton;
+    std::array<TA_OnscreenButton, 8> deleteSaveRowButtons;
 };
 
 #endif // DATA_SELECT_SECTION_H
