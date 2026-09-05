@@ -1,6 +1,7 @@
 #include "game_screen.h"
 #include "resource_manager.h"
 #include "save.h"
+#include "script.h"
 #include "tools.h"
 
 void TA_GameScreen::init() {
@@ -44,6 +45,7 @@ void TA_GameScreen::init() {
     }
 
     objectSet.setLinks(links);
+    TA::activeObjectSet = &objectSet;
     tilemap.load(TA::levelPath + ".tmx");
     tilemap.setCamera(&camera);
     hud.load(links);
@@ -57,6 +59,8 @@ void TA_GameScreen::init() {
 
     TA::previousLevelPath = TA::levelPath;
     timer = TA::save::getSaveParameter("time");
+
+    TA::script::notifyLevelLoad(TA::levelPath);
 }
 
 TA_ScreenState TA_GameScreen::update() {
@@ -172,4 +176,5 @@ void TA_GameScreen::drawRemotePlayers() {
 
 void TA_GameScreen::quit() {
     TA::activeCharacter = nullptr;
+    TA::activeObjectSet = nullptr;
 }

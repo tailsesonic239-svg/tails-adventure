@@ -13,6 +13,7 @@ namespace TA {
     float elapsedTime;
 
     TA_Character* activeCharacter = nullptr;
+    TA_ObjectSet* activeObjectSet = nullptr;
 
     std::string levelPath = "", previousLevelPath = "";
     std::set<std::string> arguments;

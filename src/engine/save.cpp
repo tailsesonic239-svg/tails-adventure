@@ -92,6 +92,10 @@ long long TA::save::getParameter(std::string name) {
     return saveMap[name];
 }
 
+bool TA::save::hasParameter(std::string name) {
+    return saveMap.contains(name);
+}
+
 void TA::save::setParameter(std::string name, long long value) {
     saveMap[name] = value;
 }
@@ -112,6 +116,13 @@ void TA::save::setSaveParameter(std::string name, long long value, std::string s
         saveName = currentSave;
     }
     setParameter(saveName + "/" + name, value);
+}
+
+bool TA::save::hasSaveParameter(std::string name, std::string saveName) {
+    if(saveName == "") {
+        saveName = currentSave;
+    }
+    return hasParameter(saveName + "/" + name);
 }
 
 void TA::save::createSave(std::string saveName) {

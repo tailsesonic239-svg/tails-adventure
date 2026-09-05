@@ -188,6 +188,7 @@ public:
     void setSpawnPoint(TA_Point newPosition, bool newFlip);
     TA_Point getPosition() { return position; }
     TA_Point getVelocity() { return velocity; }
+    void setVelocity(TA_Point newVelocity) { velocity = newVelocity; }
     float getJumpTime() { return jumpTime; }
 
     void setCharacterPosition(TA_Point position);

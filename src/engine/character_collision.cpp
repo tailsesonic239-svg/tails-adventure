@@ -4,6 +4,7 @@
 #include "object_set.h"
 #include "ring.h"
 #include "save.h"
+#include "script.h"
 #include "splash.h"
 #include "tools.h"
 
@@ -208,6 +209,7 @@ void TA_Character::setHurt() {
     ground = helitail = jump = sonicDashing = sonicCharging = sonicHoming = false;
     damageSound.play();
     TA::gamepad::rumble(0.75, 0.75, 20);
+    TA::script::notifyPlayerHurt();
 }
 
 void TA_Character::dropRings() {

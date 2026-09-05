@@ -32,8 +32,6 @@ private:
     void updateMultiplayerBrowse();
     void drawMultiplayerBrowse();
     void activateMultiplayerAction(int index);
-    void updateDeleteSave();
-    void drawDeleteSaveBrowse();
     bool updateTouchscreenSelection();
     int getSavePercent(int save);
     std::string getSaveTime(int save);
@@ -87,14 +85,12 @@ private:
     TA_OnscreenButton multiplayerBackButton;
     std::array<TA_OnscreenButton, 3> multiplayerRowButtons;
 
-    // Tela de deletar save. Fica no ultimo slot do menu (depois dos 8
-    // saves). Precisa tocar 2x no mesmo save pra confirmar, pra nao
-    // apagar por acidente.
+    // Modo "apagar save": ativado clicando na pilula "delete save" do
+    // carrossel. Enquanto ativo, os nomes dos saves ficam vermelhos e
+    // clicar num save existente apaga na hora (sem popup, sem confirmar
+    // 2x) — clicar num slot vazio nao faz nada e continua armado; clicar
+    // em qualquer outra coisa (ou apertar B) cancela o modo.
     bool deletingSave = false;
-    int deleteSaveSelection = 0;
-    int deleteSavePendingConfirm = -1;
-    TA_OnscreenButton deleteSaveBackButton;
-    std::array<TA_OnscreenButton, 8> deleteSaveRowButtons;
 };
 
 #endif // DATA_SELECT_SECTION_H

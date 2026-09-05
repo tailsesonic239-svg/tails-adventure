@@ -7,6 +7,7 @@
 #include "geometry.h"
 
 class TA_Character;
+class TA_ObjectSet;
 
 namespace TA {
     extern SDL_Window* window;
@@ -19,6 +20,10 @@ namespace TA {
     // gameplay (menus, tela de save etc). Setado por TA_GameScreen.
     // Usado pela API de scripting Lua pra expor posição/estado do player.
     extern TA_Character* activeCharacter;
+
+    // Object set (inimigos, itens, rings...) da fase atual, ou nullptr fora
+    // do gameplay. Usado pela API de scripting Lua junto do activeCharacter.
+    extern TA_ObjectSet* activeObjectSet;
 
     constexpr float pi = 3.14159265358979323846;
 

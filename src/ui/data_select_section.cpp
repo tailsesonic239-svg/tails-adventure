@@ -58,12 +58,6 @@ void TA_DataSelectSection::load() {
         multiplayerRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 12));
     }
 
-    deleteSaveBackButton.setRectangle(TA_Point(0, 0), TA_Point((float)TA::screenWidth, 24));
-    for(int i = 0; i < static_cast<int>(deleteSaveRowButtons.size()); i++) {
-        float y = modsListY + i * 10;
-        deleteSaveRowButtons[i].setRectangle(TA_Point(0, y), TA_Point((float)TA::screenWidth, y + 10));
-    }
-
     splashSequence = generateSplashSequence();
 }
 
@@ -91,8 +85,9 @@ TA_MainMenuState TA_DataSelectSection::update() {
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
-    if(deletingSave) {
-        updateDeleteSave();
+    if(deletingSave && controller->isJustPressed(TA_BUTTON_B)) {
+        deletingSave = false;
+        switchSound.play();
         return TA_MAIN_MENU_DATA_SELECT;
     }
 
@@ -189,61 +184,6 @@ void TA_DataSelectSection::updateModsBrowse() {
     }
 }
 
-void TA_DataSelectSection::updateDeleteSave() {
-    auto tryDelete = [this](int i) {
-        if(!TA::save::saveExists(i) || i == createdSave) {
-            return;
-        }
-        if(deleteSavePendingConfirm != i) {
-            // primeiro toque so "arma" a confirmacao nesse save
-            deleteSavePendingConfirm = i;
-            switchSound.play();
-            return;
-        }
-        // segundo toque no MESMO save de fato apaga
-        TA::save::deleteSave(i);
-        deleteSavePendingConfirm = -1;
-        selectSound.play();
-    };
-
-    if(controller->isTouchscreen()) {
-        deleteSaveBackButton.update();
-        if(deleteSaveBackButton.isReleased()) {
-            deletingSave = false;
-            deleteSavePendingConfirm = -1;
-            return;
-        }
-
-        for(int i = 0; i < static_cast<int>(deleteSaveRowButtons.size()); i++) {
-            deleteSaveRowButtons[i].update();
-            if(deleteSaveRowButtons[i].isReleased()) {
-                deleteSaveSelection = i;
-                tryDelete(i);
-            }
-        }
-        return;
-    }
-
-    if(controller->isJustPressed(TA_BUTTON_B)) {
-        deletingSave = false;
-        deleteSavePendingConfirm = -1;
-        return;
-    }
-
-    if(controller->isJustChangedDirection() &&
-        (controller->getDirection() == TA_DIRECTION_UP || controller->getDirection() == TA_DIRECTION_DOWN)) {
-        int delta = (controller->getDirection() == TA_DIRECTION_DOWN) ? 1 : -1;
-        deleteSaveSelection = (deleteSaveSelection + delta + 8) % 8;
-        if(deleteSavePendingConfirm != deleteSaveSelection) {
-            deleteSavePendingConfirm = -1;
-        }
-        switchSound.play();
-    }
-
-    if(controller->isJustPressed(TA_BUTTON_A)) {
-        tryDelete(deleteSaveSelection);
-    }
-}
 
 void TA_DataSelectSection::updateMultiplayerBrowse() {
     if(controller->isTouchscreen()) {
@@ -321,6 +261,25 @@ void TA_DataSelectSection::activateMultiplayerAction(int index) {
 }
 
 TA_MainMenuState TA_DataSelectSection::processSelection() {
+    if(deletingSave) {
+        if(selection >= 3 && selection <= 10) {
+            int save = selection - 3;
+            if(TA::save::saveExists(save) && save != createdSave) {
+                TA::save::deleteSave(save);
+                deletingSave = false;
+                selectSound.play();
+            }
+            // slot vazio: nao faz nada, continua armado pra tentar de novo
+            return TA_MAIN_MENU_DATA_SELECT;
+        }
+
+        // clicou em qualquer outra coisa (options/mods/multiplayer/delete de
+        // novo) enquanto armado -> so cancela, sem executar a acao clicada
+        deletingSave = false;
+        switchSound.play();
+        return TA_MAIN_MENU_DATA_SELECT;
+    }
+
     if(selection == 0) {
         selectSound.play();
         return TA_MAIN_MENU_OPTIONS;
@@ -343,7 +302,6 @@ TA_MainMenuState TA_DataSelectSection::processSelection() {
 
     if(selection == 11) {
         selectSound.play();
-        deleteSavePendingConfirm = -1;
         deletingSave = true;
         return TA_MAIN_MENU_DATA_SELECT;
     }
@@ -443,7 +401,6 @@ void TA_DataSelectSection::draw() {
     drawCharacterSelect();
     drawModsBrowse();
     drawMultiplayerBrowse();
-    drawDeleteSaveBrowse();
 }
 
 void TA_DataSelectSection::drawCharacterSelect() {
@@ -580,45 +537,6 @@ void TA_DataSelectSection::drawMultiplayerBrowse() {
     }
 }
 
-void TA_DataSelectSection::drawDeleteSaveBrowse() {
-    if(!deletingSave) {
-        return;
-    }
-
-    font.setAlpha(255);
-    splashFont.setAlpha(255);
-    characterSelectFrameSprite.setAlpha(255);
-
-    characterSelectFrameSprite.setPosition(
-        (float)TA::screenWidth / 2 - characterSelectFrameSprite.getWidth() / 2,
-        (float)TA::screenHeight / 2 - characterSelectFrameSprite.getHeight() / 2);
-    characterSelectFrameSprite.draw();
-
-    float centerX = (float)TA::screenWidth / 2;
-    float centerY = (float)TA::screenHeight / 2;
-    float frameTop = centerY - characterSelectFrameSprite.getHeight() / 2;
-
-    splashFont.drawTextCentered(frameTop + 6, "DELETE SAVE", TA_Point(-1, 0));
-    font.drawText(TA_Point(8, 8), "< back");
-
-    float listY = frameTop + 22;
-    for(int i = 0; i < 8; i++) {
-        std::string marker = (i == deleteSaveSelection) ? "> " : "  ";
-        std::string label = "save " + std::to_string(i + 1);
-
-        std::string line;
-        if(!TA::save::saveExists(i) || i == createdSave) {
-            line = marker + label + " (vazio)";
-        } else if(deleteSavePendingConfirm == i) {
-            line = marker + label + " - toca de novo!";
-        } else {
-            line = marker + label + " - " + std::to_string(getSavePercent(i)) + "% " + getSaveTime(i);
-        }
-
-        font.drawText(TA_Point(centerX - 60, listY + i * 10), line);
-    }
-}
-
 void TA_DataSelectSection::drawCustomEntries() {
     optionsSprite.setAlpha(alpha);
     optionsSprite.setPosition(menuStart - position, (float)TA::screenHeight / 2 - entrySprite.getHeight() / 2);
@@ -656,6 +574,7 @@ void TA_DataSelectSection::drawSaveEntries() {
     previewSprite.setAlpha(alpha);
     previewSeafoxSprite.setAlpha(alpha);
     font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
+    font.setColorMod(255, deletingSave ? 70 : 255, deletingSave ? 70 : 255);
 
     for(int num = 0; num < 8; num++) {
         TA_Point entryPosition{
@@ -683,6 +602,8 @@ void TA_DataSelectSection::drawSaveEntries() {
         font.drawText(entryPosition + TA_Point(11, 50), std::to_string(getSavePercent(num)) + "%");
         font.drawText(entryPosition + TA_Point(11, 60), getSaveTime(num), TA_Point(-2, 0));
     }
+
+    font.setColorMod(255, 255, 255);
 }
 
 void TA_DataSelectSection::drawDeleteSaveEntry() {
@@ -694,10 +615,12 @@ void TA_DataSelectSection::drawDeleteSaveEntry() {
     entrySprite.draw();
 
     font.setAlpha(255 * ((float)alpha / 255) * ((float)alpha / 255));
-    std::string label1 = "delete";
-    std::string label2 = "save";
+    font.setColorMod(255, deletingSave ? 70 : 255, deletingSave ? 70 : 255);
+    std::string label1 = deletingSave ? "cancel" : "delete";
+    std::string label2 = deletingSave ? "delete" : "save";
     font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label1) / 2, 26), label1);
     font.drawText(entryPosition + TA_Point(24 - font.getTextWidth(label2) / 2, 36), label2);
+    font.setColorMod(255, 255, 255);
 }
 
 void TA_DataSelectSection::drawModCount() {

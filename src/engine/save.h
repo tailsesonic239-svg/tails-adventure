@@ -9,9 +9,11 @@ namespace TA {
         void writeToFile();
         long long getParameter(std::string name);
         void setParameter(std::string name, long long value);
+        bool hasParameter(std::string name);
         void setCurrentSave(std::string name);
         long long getSaveParameter(std::string name, std::string saveName = "");
         void setSaveParameter(std::string name, long long value, std::string saveName = "");
+        bool hasSaveParameter(std::string name, std::string saveName = "");
         void createSave(std::string saveName);
         void repairSave(std::string saveName);
         void deleteSave(int save);
